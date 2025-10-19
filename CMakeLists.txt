@@ -36,5 +36,7 @@ set(GLAD_SRC_PATH
     ${CMAKE_SOURCE_DIR}/glad.c
 )
 # 包含子项目。
-add_subdirectory ("01.HelloWindow")
-add_subdirectory ("02.HelloTriangle")
+add_subdirectory (01.HelloWindow)
+add_subdirectory (02.HelloTriangle)
+add_subdirectory (03.HelloTriangleExercise)
+add_subdirectory (04.ShaderGLSL)

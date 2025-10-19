@@ -4,19 +4,19 @@
 
 # 将源代码添加到此项目的可执行文件。
 add_executable (02.HelloTriangle
-    "02.HelloTriangle.cpp" 
-    
+    main.cpp
+
     ${GLAD_SRC_PATH}
 )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET 02.HelloTriangle  PROPERTY CXX_STANDARD 20)
+  set_property(TARGET 02.HelloTriangle PROPERTY CXX_STANDARD 20)
 endif()
 
 # TODO: 如有需要，请添加测试并安装目标。
-target_include_directories(02.HelloTriangle 
+target_include_directories(02.HelloTriangle
     PRIVATE ${MYLIB_INCLUDE_DIR}
 )
-target_link_libraries(02.HelloTriangle 
+target_link_libraries(02.HelloTriangle
     ${MYLIB_LIBRARY}
 )

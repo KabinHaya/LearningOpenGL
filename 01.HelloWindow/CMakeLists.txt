@@ -3,9 +3,9 @@
 #
 
 # 将源代码添加到此项目的可执行文件。
-add_executable (01.HelloWindow 
-    "01.HelloWindow.cpp" 
-    
+add_executable (01.HelloWindow
+    main.cpp
+
     ${GLAD_SRC_PATH}
 )
 
@@ -14,9 +14,9 @@ if (CMAKE_VERSION VERSION_GREATER 3.12)
 endif()
 
 # TODO: 如有需要，请添加测试并安装目标。
-target_include_directories(01.HelloWindow 
+target_include_directories(01.HelloWindow
     PRIVATE ${MYLIB_INCLUDE_DIR}
 )
-target_link_libraries(01.HelloWindow 
+target_link_libraries(01.HelloWindow
     ${MYLIB_LIBRARY}
 )

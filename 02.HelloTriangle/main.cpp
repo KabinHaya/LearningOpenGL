@@ -55,27 +55,42 @@ int main()
         });
 
     // 定义顶点教程
-    float vertices[] =
-    {
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.0f,  0.5f, 0.0f
+    float vertices[] = {
+        0.5f, 0.5f, 0.0f,   // 右上角
+        0.5f, -0.5f, 0.0f,  // 右下角
+        -0.5f, -0.5f, 0.0f, // 左下角
+        -0.5f, 0.5f, 0.0f   // 左上角
+    };
+
+    unsigned int indices[] = {
+        // 注意索引从0开始! 
+        // 此例的索引(0,1,2,3)就是顶点数组vertices的下标，
+        // 这样可以由下标代表顶点组合成矩形
+
+        0, 1, 3, // 第一个三角形
+        1, 2, 3  // 第二个三角形
     };
 
     // 创建VBO
     unsigned int VBO;
     unsigned int VAO;
+    unsigned int EBO;
     glGenBuffers(1, &VBO);
     glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &EBO);
+
     // 绑定 VAO 对象
     glBindVertexArray(VAO);
 
     // 绑定缓冲
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
     // 填充数据
-    // 最后一个参数用来将绘制数据放到合适位置，不变的数据放普速存储区，变得多的放在高速存储区
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // 最后一个参数用来将绘制数据放到合适位置，不变的数据放普速存储区，变得多的放在高速存储区
+
+    // 绑定 EBO 对象
+    // 填充 EBO 数据
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     // 设置顶点属性指针
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
@@ -138,6 +153,9 @@ int main()
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
+    // 设置线框绘制模式
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
     while (!glfwWindowShouldClose(window))
     {
         ProcessInput(window);
@@ -148,13 +166,23 @@ int main()
 
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
-        glDrawArrays(GL_POINTS, 0, 3);
+        //glDrawArrays(GL_POINTS, 0, 6);
+        //glDrawArrays(GL_LINE_LOOP, 0, 6);
+        //glDrawElements(GL_LINE_LOOP, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    // 资源释放
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
+    glDeleteProgram(shaderProgram);
+
     glfwTerminate();
     return 0;
 }
