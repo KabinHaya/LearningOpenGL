@@ -11,9 +11,9 @@ endif()
 
 project ("LearningOpenGL")
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/ThirdParty/include)
 set(MYLIB_INCLUDE_DIR 
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/ThirdParty/include
     CACHE PATH 
         "Header directory of OpenGL"
 )
@@ -23,7 +23,7 @@ find_library(MYLIB_LIBRARY
         glfw3
         assimp-vc143-mtd
     PATHS 
-        set(LIB_DIR ${CMAKE_SOURCE_DIR}/lib)
+        set(LIB_DIR ${CMAKE_SOURCE_DIR}/ThirdParty/lib)
         
     NO_DEFAULT_PATH
 )
@@ -35,7 +35,7 @@ set(MYLIB_LIBRARY
     FORCE
 )
 set(GLAD_SRC_PATH 
-    ${CMAKE_SOURCE_DIR}/glad.c
+    ${CMAKE_SOURCE_DIR}/ThirdParty/src/glad.c
 )
 # 包含子项目。
 add_subdirectory (01_HelloWindow)
