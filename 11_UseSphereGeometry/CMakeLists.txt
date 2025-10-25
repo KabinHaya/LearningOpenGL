@@ -1,5 +1,6 @@
 # 将源代码添加到此项目的可执行文件。
-set(PROJECT_NAME 10_TransformExercise)
+set(PROJECT_NAME 11_UseSphereGeometry)
+set(COPY_RESOURCES 11_CopyResources)
 
 add_executable (${PROJECT_NAME}
     main.cpp
@@ -26,12 +27,10 @@ target_link_libraries(${PROJECT_NAME}
 set(RESOURCES_SRC ${CMAKE_CURRENT_SOURCE_DIR}/shader)
 set(RESOURCES_DST ${CMAKE_CURRENT_BINARY_DIR}/shader)
 
+
 file(GLOB_RECURSE SHADER_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/shader/*.glsl"
 )
-
-set(COPY_RESOURCES 10_CopyResources)
-
 
 add_custom_target(${COPY_RESOURCES} ALL
     COMMAND

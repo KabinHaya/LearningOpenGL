@@ -2,17 +2,21 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <tools/shader.h>
-#include <tools/stb_image.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <tools/shader.h>
+#include <tools/stb_image.h>
+#include <geometry/PlaneGeometry.h>
 
 #include <iostream>
 #include <string>
 #include <format>
 
 static void ProcessInput(GLFWwindow* window);
+
+const unsigned int SCREEN_WIDTH = 800;
+const unsigned int SCREEN_HEIGHT = 600;
 
 int main()
 {
@@ -39,8 +43,10 @@ int main()
     // 设置视口
     // 从左下到右上
     // 这是渲染窗口
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     glEnable(GL_PROGRAM_POINT_SIZE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height)
         {
             glViewport(0, 0, width, height);
@@ -48,58 +54,8 @@ int main()
 
     Shader ourShader("./shader/vertex.glsl", "./shader/fragment.glsl");
 
-    // 定义顶点教程
-    float vertices[] = {
-        //     ---- 位置 ----       ---- 颜色 ----     - 纹理坐标 -
-             0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // 右上
-             0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 右下
-            -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 左下
-            -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // 左上
-    };
+    PlaneGeometry planeGeometry(1.0f, 1.0f, 8.0f, 8.0f);
 
-    unsigned int indices[] = {
-        // 注意索引从0开始! 
-        // 此例的索引(0,1,2,3)就是顶点数组vertices的下标，
-        // 这样可以由下标代表顶点组合成矩形
-
-        0, 1, 3, // 第一个三角形
-        1, 2, 3  // 第二个三角形
-    };
-
-    // 创建VBO
-    unsigned int VBO;
-    unsigned int VAO;
-    unsigned int EBO;
-    glGenBuffers(1, &VBO);
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &EBO);
-
-    // 绑定 VAO 对象
-    glBindVertexArray(VAO);
-
-    // 绑定缓冲
-    // 填充数据
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // 最后一个参数用来将绘制数据放到合适位置，不变的数据放普速存储区，变得多的放在高速存储区
-
-    // 绑定 EBO 对象
-    // 填充 EBO 数据
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    // 设置顶点位置属性指针
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    // 设置顶点颜色属性指针
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // 设置顶点纹理属性指针
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    glBindVertexArray(0);
 
     // 生成纹理
     unsigned int texture1, texture2;
@@ -109,6 +65,9 @@ int main()
     // 纹理1
 
     // 设置环绕和过滤方式
+    float borderColor[] = { 0.3f, 0.1f, 0.7f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -158,16 +117,6 @@ int main()
     ourShader.setInt("texture1", 0);
     ourShader.setInt("texture2", 1);
 
-    // 初始化一个单位矩阵
-    glm::mat4 trans = glm::mat4(1.0f);
-
-    trans = glm::rotate(trans, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    trans = glm::scale(trans, glm::vec3(0.5f, 0.5f, 0.5f));
-
-    // 将矩阵传递给顶点着色器
-    unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "transform");
-    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
-
     while (!glfwWindowShouldClose(window))
     {
         ProcessInput(window);
@@ -177,12 +126,8 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         ourShader.use();
-        float factor = glfwGetTime();
-        trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-        trans = glm::rotate(trans, glm::radians(factor * 30.0f), glm::vec3(0.0f, 0.0f, 1.0f)); 
-        trans = glm::scale(trans, glm::vec3(0.5f, 0.5f, 0.5f));
-        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
-        trans = glm::mat4(1.0f);
+        float factor = static_cast<float>(glfwGetTime());
+        ourShader.setFloat("factor", factor);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
@@ -190,23 +135,17 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
-        glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-        trans = glm::translate(trans, glm::vec3(-0.5f, 0.5f, 0.0f));
-        trans = glm::scale(trans, glm::vec3(0.5f, 0.5f, 0.5f) * std::sin(factor));
-        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        trans = glm::mat4(1.0f);
+        glBindVertexArray(planeGeometry.VAO);
+        glDrawElements(GL_TRIANGLES, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+        //glDrawElements(GL_POINTS, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+        //glDrawElements(GL_LINE_LOOP, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     // 资源释放
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
+    planeGeometry.dispose();
 
     glfwTerminate();
     return 0;
