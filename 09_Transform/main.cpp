@@ -4,8 +4,13 @@
 #include <GLFW/glfw3.h>
 #include <tools/shader.h>
 #include <tools/stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include <iostream>
 #include <string>
+#include <format>
 
 static void ProcessInput(GLFWwindow* window);
 
@@ -153,10 +158,15 @@ int main()
     ourShader.setInt("texture1", 0);
     ourShader.setInt("texture2", 1);
 
-    float mixValue = 0.0f;
+    // 初始化一个单位矩阵
+    glm::mat4 trans = glm::mat4(1.0f);
 
-    // 设置填充绘制模式
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    trans = glm::rotate(trans, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    trans = glm::scale(trans, glm::vec3(0.5f, 0.5f, 0.5f));
+
+    // 将矩阵传递给顶点着色器
+    unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "transform");
+    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 
     while (!glfwWindowShouldClose(window))
     {
@@ -167,8 +177,11 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         ourShader.use();
-        mixValue = glfwGetTime();
-        ourShader.setFloat("mixValue", mixValue);
+        float factor = glfwGetTime();
+        trans = glm::rotate(trans, glm::radians(factor * 10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        trans = glm::scale(trans, glm::vec3(0.5f, 0.5f, 0.5f));
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+        trans = glm::mat4(1.0f);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
