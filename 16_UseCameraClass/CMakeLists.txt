@@ -1,12 +1,13 @@
 # 将源代码添加到此项目的可执行文件。
-set(PROJECT_NAME 11_UseSphereGeometry)
-set(COPY_RESOURCES 11_CopyResources)
+set(PROJECT_NAME 16_UseCameraClass)
+set(COPY_RESOURCES 16_CopyResources)
 
 add_executable (${PROJECT_NAME}
     main.cpp
 
     ${GLAD_SRC}
- )
+    ${IMGUI_SRC}
+)
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET ${PROJECT_NAME}

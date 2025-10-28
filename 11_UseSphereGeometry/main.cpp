@@ -26,7 +26,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    // ÕâÊÇ´´½¨µÄ´°¿Ú
+    // è¿™æ˜¯åˆ›å»ºçš„çª—å£
     GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", nullptr, nullptr);
     if (window == nullptr)
     {
@@ -40,9 +40,9 @@ int main()
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-    // ÉèÖÃÊÓ¿Ú
-    // ´Ó×óÏÂµ½ÓÒÉÏ
-    // ÕâÊÇäÖÈ¾´°¿Ú
+    // è®¾ç½®è§†å£
+    // ä»å·¦ä¸‹åˆ°å³ä¸Š
+    // è¿™æ˜¯æ¸²æŸ“çª—å£
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     glEnable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_BLEND);
@@ -57,14 +57,14 @@ int main()
     SphereGeometry sphereGeometry(0.5, 20.0, 20.0);
 
 
-    // Éú³ÉÎÆÀí
+    // ç”Ÿæˆçº¹ç†
     unsigned int texture1, texture2;
     glGenTextures(1, &texture1);
     glBindTexture(GL_TEXTURE_2D, texture1);
 
-    // ÎÆÀí1
+    // çº¹ç†1
 
-    // ÉèÖÃ»·ÈÆºÍ¹ıÂË·½Ê½
+    // è®¾ç½®ç¯ç»•å’Œè¿‡æ»¤æ–¹å¼
     float borderColor[] = { 0.3f, 0.1f, 0.7f, 1.0f };
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
@@ -73,10 +73,10 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    // Í¼ÏñyÖá·­×ª
+    // å›¾åƒyè½´ç¿»è½¬
     stbi_set_flip_vertically_on_load(true);
 
-    // ¼ÓÔØÍ¼Æ¬
+    // åŠ è½½å›¾ç‰‡
     const char* assetsPath = "../../../../assets/";
     std::string imgPath = std::string(assetsPath) + "texture/container.jpg";
     
@@ -91,7 +91,7 @@ int main()
     }
     stbi_image_free(data);
 
-    // ÎÆÀí2
+    // çº¹ç†2
 
     glGenTextures(1, &texture2);
     glBindTexture(GL_TEXTURE_2D, texture2);
@@ -121,7 +121,7 @@ int main()
     {
         processInput(window);
 
-        // äÖÈ¾Ö¸Áî
+        // æ¸²æŸ“æŒ‡ä»¤
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -144,7 +144,7 @@ int main()
         glfwPollEvents();
     }
 
-    // ×ÊÔ´ÊÍ·Å
+    // èµ„æºé‡Šæ”¾
     sphereGeometry.dispose();
 
     glfwTerminate();

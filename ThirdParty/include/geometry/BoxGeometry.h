@@ -111,7 +111,7 @@ private:
     {
       for (unsigned int ix = 0; ix < gridX; ix++)
       {
-        unsigned int a = numberOfVertices + ix + gridX1 * iy;
+        float a = numberOfVertices + ix + gridX1 * iy;
         float b = numberOfVertices + ix + gridX1 * (iy + 1);
         float c = numberOfVertices + (ix + 1) + gridX1 * (iy + 1);
         float d = numberOfVertices + (ix + 1) + gridX1 * iy;

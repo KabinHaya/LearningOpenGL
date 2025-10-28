@@ -20,6 +20,11 @@ static void processInput(GLFWwindow* window);
 
 int SCREEN_WIDTH = 800;
 int SCREEN_HEIGHT = 600;
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+float deltaTime = 0.0f; // 当前帧与上一帧的时间差
+float lastFrame = 0.0f; // 上一针的时间
 
 int main()
 {
@@ -152,11 +157,17 @@ int main()
     ourShader.setInt("texture2", 1);
 
     float fov = 45.0f; // 视椎体的角度
-    glm::vec3 viewTranslate = glm::vec3(0.0f, 0.0f, -3.0f);
     ImVec4 clearColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+    float radius = 10.0f; // 旋转半径
+
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
+
+        float currentFrame = (float)glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
 
         // 开始 ImGui 帧
         ImGui_ImplOpenGL3_NewFrame();
@@ -165,10 +176,10 @@ int main()
         
         ImGui::Begin("ImGui");
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-        ImGui::SliderFloat("float", &fov, 0.0f, 360.0f);
+        ImGui::Text("Camera Position x = %.4f, y = %.4f, z = %.4f", cameraPos.x, cameraPos.y, cameraPos.z);
+        ImGui::SliderFloat("FOV", &fov, 0.0f, 360.0f);
         ImGui::SliderInt("Screen Width", &SCREEN_WIDTH, 800, 1920);
         ImGui::SliderInt("Screen Height", &SCREEN_HEIGHT, 600, 1080);
-        ImGui::SliderFloat3("Translate", &viewTranslate.x, -10.0f, 10.0f);
         ImGui::ColorEdit3("Clear Color", (float*)&clearColor);
         ImGui::End();
 
@@ -188,7 +199,8 @@ int main()
 
         glm::mat4 view = glm::mat4(1.0f);
         glm::mat4 projection = glm::mat4(1.0f);
-        view = glm::translate(view, viewTranslate);
+        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
         projection = glm::perspective(glm::radians(fov), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
 
         ourShader.setMat4("view", view);
@@ -206,7 +218,7 @@ int main()
             model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
             ourShader.setMat4("model", model);
 
-            glDrawElements(GL_TRIANGLES, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, (int)boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
         }
         
         // ImGui 渲染
@@ -226,8 +238,15 @@ int main()
 
 static void processInput(GLFWwindow* window)
 {
+    float cameraSpeed = 2.5f * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    {
         glfwSetWindowShouldClose(window, true);
-    }
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        cameraPos += cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        cameraPos -= cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 }

@@ -29,7 +29,7 @@ class BufferGeometry
 public:
   vector<Vertex> vertices;
   vector<unsigned int> indices;
-  unsigned int VAO;
+  unsigned int VAO = 0; // 初始化VAO
 
   void logParameters()
   {
@@ -61,7 +61,8 @@ private:
   glm::mat4 matrix = glm::mat4(1.0f);
 
 protected:
-  unsigned int VBO, EBO;
+  unsigned int VBO = 0; // 初始化VBO
+  unsigned int EBO = 0; // 初始化EBO
 
   void setupBuffers()
   {
