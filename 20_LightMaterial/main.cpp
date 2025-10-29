@@ -166,6 +166,12 @@ int main()
     ourShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
     ourShader.setFloat("ambientStrength", 0.1f);
 
+    // 传递材质属性
+    ourShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+    ourShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+    ourShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+    ourShader.setFloat("material.shininess", 32.0f);
+
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);

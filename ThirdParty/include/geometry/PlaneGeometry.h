@@ -17,15 +17,15 @@ public:
     float segment_width = width / wSegment;
     float segment_height = height / hSegment;
 
-    Vertex vertex;
+    Vertex vertex{};
 
     // generate Position Normal TexCoords
-    for (int iy = 0; iy < gridY1; iy++)
+    for (int iy = 0; iy < gridY1; ++iy)
     {
 
       float y = iy * segment_height - height_half;
 
-      for (int ix = 0; ix < gridX1; ix++)
+      for (int ix = 0; ix < gridX1; ++ix)
       {
         float x = ix * segment_width - height_half;
         vertex.Position = glm::vec3(x, -y, 0.0f);
@@ -36,9 +36,9 @@ public:
       }
     }
     // generate indices
-    for (int iy = 0; iy < hSegment; iy++)
+    for (int iy = 0; iy < hSegment; ++iy)
     {
-      for (int ix = 0; ix < wSegment; ix++)
+      for (int ix = 0; ix < wSegment; ++ix)
       {
         float a = ix + gridX1 * iy;
         float b = ix + gridX1 * (iy + 1);

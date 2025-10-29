@@ -22,7 +22,7 @@ public:
     Vertex vertex{};
 
     // 计算 vertices normals 和 uvs
-    for (unsigned int iy = 0; iy <= heightSegments; iy++)
+    for (unsigned int iy = 0; iy <= heightSegments; ++iy)
     {
       std::vector<int> verticesRow;
 
@@ -32,13 +32,13 @@ public:
 
       if (iy == 0 && thetaStart == 0)
       {
-        uOffset = 0.5 / widthSegments;
+        uOffset = 0.5f / widthSegments;
       }
       else if (iy == heightSegments && thetaEnd == PI)
       {
-        uOffset = -0.5 / widthSegments;
+        uOffset = -0.5f / widthSegments;
       }
-      for (unsigned int ix = 0; ix <= widthSegments; ix++)
+      for (unsigned int ix = 0; ix <= widthSegments; ++ix)
       {
         const float u = ix / widthSegments;
 
@@ -64,9 +64,9 @@ public:
     }
 
     // indices
-    for (unsigned int iy = 0; iy < heightSegments; iy++)
+    for (unsigned int iy = 0; iy < heightSegments; ++iy)
     {
-      for (unsigned ix = 0; ix < widthSegments; ix++)
+      for (unsigned ix = 0; ix < widthSegments; ++ix)
       {
         unsigned int a = grid[iy][ix + 1];
         unsigned int b = grid[iy][ix];

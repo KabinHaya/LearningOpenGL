@@ -65,18 +65,18 @@ private:
     float gridX1 = gridX + 1.0f;
     float gridY1 = gridY + 1.0f;
 
-    float vertexCounter = 0.0f;
+    int vertexCounter = 0;
     float groupCount = 0.0f;
 
     glm::vec3 vector = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    Vertex vertex;
+    Vertex vertex{};
 
     // 生成 顶点数据
-    for (unsigned int iy = 0; iy < gridY1; iy++)
+    for (unsigned int iy = 0; iy < gridY1; ++iy)
     {
       float y = iy * segmentHeight - heightHalf;
-      for (unsigned int ix = 0; ix < gridX1; ix++)
+      for (unsigned int ix = 0; ix < gridX1; ++ix)
       {
         float x = ix * segmentWidth - widthHalf;
 
@@ -98,28 +98,28 @@ private:
         this->vertices.push_back(vertex);
 
         // counters
-        vertexCounter += 1.0;
+        vertexCounter++;
       }
     }
 
     // indices
 
-    for (unsigned int iy = 0; iy < gridY; iy++)
+    for (unsigned int iy = 0; iy < gridY; ++iy)
     {
-      for (unsigned int ix = 0; ix < gridX; ix++)
+      for (unsigned int ix = 0; ix < gridX; ++ix)
       {
         float a = numberOfVertices + ix + gridX1 * iy;
         float b = numberOfVertices + ix + gridX1 * (iy + 1);
         float c = numberOfVertices + (ix + 1) + gridX1 * (iy + 1);
         float d = numberOfVertices + (ix + 1) + gridX1 * iy;
 
-        this->indices.push_back(a);
-        this->indices.push_back(b);
-        this->indices.push_back(d);
+        this->indices.push_back(static_cast<unsigned int>(a));
+        this->indices.push_back(static_cast<unsigned int>(b));
+        this->indices.push_back(static_cast<unsigned int>(d));
 
-        this->indices.push_back(b);
-        this->indices.push_back(c);
-        this->indices.push_back(d);
+        this->indices.push_back(static_cast<unsigned int>(b));
+        this->indices.push_back(static_cast<unsigned int>(c));
+        this->indices.push_back(static_cast<unsigned int>(d));
       }
     }
     numberOfVertices += vertexCounter;
