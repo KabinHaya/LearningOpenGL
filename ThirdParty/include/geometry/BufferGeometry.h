@@ -1,5 +1,5 @@
-#ifndef BUFFER_GROMETRY
-#define BUFFER_GROMETRY
+#pragma once
+
 #include <glm/glm.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -8,8 +8,6 @@
 #include <string>
 #include <vector>
 #include <iostream>
-
-using namespace std;
 
 const float PI = glm::pi<float>();
 
@@ -27,8 +25,8 @@ struct Vertex
 class BufferGeometry
 {
 public:
-  vector<Vertex> vertices;
-  vector<unsigned int> indices;
+  std::vector<Vertex> vertices;
+  std::vector<unsigned int> indices;
   unsigned int VAO = 0; // 初始化VAO
 
   void logParameters()
@@ -97,4 +95,3 @@ protected:
     glBindVertexArray(0);
   }
 };
-#endif

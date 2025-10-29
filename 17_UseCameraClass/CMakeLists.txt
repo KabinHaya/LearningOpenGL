@@ -1,6 +1,6 @@
 # 将源代码添加到此项目的可执行文件。
-set(PROJECT_NAME 16_UseCameraClass)
-set(COPY_RESOURCES 16_CopyResources)
+set(PROJECT_NAME 17_UseCameraClass)
+set(COPY_RESOURCES 17_CopyResources)
 
 add_executable (${PROJECT_NAME}
     main.cpp

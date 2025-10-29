@@ -1,9 +1,6 @@
-#ifndef BOX_GROMETRY
-#define BOX_GROMETRY
+#pragma once
 
 #include <geometry/BufferGeometry.h>
-
-using namespace std;
 
 class BoxGeometry : public BufferGeometry
 {
@@ -128,5 +125,3 @@ private:
     numberOfVertices += vertexCounter;
   }
 };
-
-#endif

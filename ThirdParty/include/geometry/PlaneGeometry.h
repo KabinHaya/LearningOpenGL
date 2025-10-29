@@ -1,9 +1,6 @@
-#ifndef PLANE_GROMETRY
-#define PLANE_GROMETRY
+#pragma once
 
 #include <geometry/BufferGeometry.h>
-
-using namespace std;
 
 class PlaneGeometry : public BufferGeometry
 {
@@ -59,5 +56,3 @@ public:
     this->setupBuffers();
   }
 };
-
-#endif

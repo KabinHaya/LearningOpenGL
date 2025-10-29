@@ -1,9 +1,6 @@
-#ifndef SPHERE_GROMETRY
-#define SPHERE_GROMETRY
+#pragma once
 
 #include <geometry/BufferGeometry.h>
-
-using namespace std;
 
 class SphereGeometry : public BufferGeometry
 {
@@ -17,17 +14,17 @@ public:
     widthSegments = glm::max(3.0f, glm::floor(widthSegments));
     heightSegments = glm::max(2.0f, glm::floor(heightSegments));
 
-    vector<vector<int>> grid;
+    std::vector<std::vector<int>> grid;
 
     glm::vec3 position = glm::vec3(0.0f);
     glm::vec3 normal = glm::vec3(0.0f);
 
-    Vertex vertex;
+    Vertex vertex{};
 
     // 计算 vertices normals 和 uvs
     for (unsigned int iy = 0; iy <= heightSegments; iy++)
     {
-      vector<int> verticesRow;
+      std::vector<int> verticesRow;
 
       float v = iy / heightSegments;
 
@@ -94,5 +91,3 @@ public:
     this->setupBuffers();
   }
 };
-
-#endif
