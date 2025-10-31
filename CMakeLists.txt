@@ -1,7 +1,7 @@
 # CMakeList.txt: 顶层 CMake 项目文件，在此处执行全局配置
 # 并包含子项目。
-#
-cmake_minimum_required (VERSION 3.8)
+
+cmake_minimum_required (VERSION 3.12)
 
 # 如果支持，请为 MSVC 编译器启用热重载。
 if (POLICY CMP0141)
@@ -11,24 +11,43 @@ if (POLICY CMP0141)
 )
 endif()
 
-if(MSVC)
-    add_compile_options(/utf-8) # MSVC使用utf8字符集
-endif()
+# 设置MSVC的字符集
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/source-charset:utf-8>")
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/execution-charset:gbk>")
 
 project ("LearningOpenGL")
 
+# 将资源路径通过宏定义进行传递
+set(ASSETS_DIR ${CMAKE_SOURCE_DIR}/assets)
+
+# 设置include路径
 set(MYLIB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/third_party/include)
 include_directories(${MYLIB_INCLUDE_DIR})
 
-find_library(MYLIB_LIBRARY
-    NAMES 
+find_library(GLFW_LIBRARY
+    NAMES
         glfw3
-        assimp-vc143-mtd
-    PATHS 
-        set(LIB_DIR ${CMAKE_SOURCE_DIR}/third_party/lib)
-        
+    PATHS
+        ${CMAKE_SOURCE_DIR}/third_party/lib
     NO_DEFAULT_PATH
 )
 
-add_subdirectory (sources)
+find_library(ASSIMP_LIBRARY
+    NAMES
+        assimp-vc143-mtd
+        assimp
+    PATHS
+        ${CMAKE_SOURCE_DIR}/third_party/lib
+    NO_DEFAULT_PATH
+)
+
+if(NOT GLFW_LIBRARY)
+    message(FATAL_ERROR "GLFW library not found")
+endif()
+
+if(NOT ASSIMP_LIBRARY)
+    message(FATAL_ERROR "Assimp library not found")
+endif()
+
+add_subdirectory (src)
 add_subdirectory (third_party)
