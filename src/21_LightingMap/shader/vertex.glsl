@@ -13,11 +13,11 @@ uniform mat4 projection;    // 投影矩阵
 
 void main()
 {
-    // 注意乘法要从右向左读
-    gl_Position = projection * view * model * vec4(Position, 1.0f);
     outFragPos = vec3(model * vec4(Position, 1.0f));    
     // 解决不等比缩放，使用法线矩阵（model 的逆转置）
     // 不推荐在着色器上进行矩阵求逆，对GPU开销过大
     outNormal = mat3(transpose(inverse(model))) * Normal;
     outTexCoord = TexCoords;
+    // 注意乘法要从右向左读
+    gl_Position = projection * view * vec4(outFragPos, 1.0f);
 }
