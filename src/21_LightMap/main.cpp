@@ -104,8 +104,8 @@ int main()
     glGenTextures(1, &texture1);
     glBindTexture(GL_TEXTURE_2D, texture1);
 
-    // 纹理1
 
+    // 纹理1
     // 设置环绕和过滤方式
     float borderColor[] = { 0.3f, 0.1f, 0.7f, 1.0f };
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
@@ -132,8 +132,8 @@ int main()
     }
     stbi_image_free(data);
 
-    // 纹理2
 
+    // 纹理2
     glGenTextures(1, &texture2);
     glBindTexture(GL_TEXTURE_2D, texture2);
 
@@ -260,6 +260,7 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    // 问题在于斜着走会更快，不过这个暂时不用考虑
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
