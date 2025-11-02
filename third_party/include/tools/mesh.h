@@ -1,16 +1,13 @@
-#ifndef MESH_H
-#define MESH_H
+#pragma once
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <tool/shader.h>
+#include <tools/shader.h>
 
 #include <string>
 #include <vector>
-
-using namespace std;
 
 #ifndef BUFFER_GROMETRY
 struct Vertex
@@ -28,20 +25,20 @@ struct Vertex
 struct Texture
 {
 	unsigned int id;
-	string type;
-	string path;
+	std::string type;
+	std::string path;
 };
 
 class Mesh
 {
 public:
 	// mesh Data
-	vector<Vertex> vertices;
-	vector<unsigned int> indices;
-	vector<Texture> textures;
+	std::vector<Vertex> vertices;
+	std::vector<unsigned int> indices;
+	std::vector<Texture> textures;
 	unsigned int VAO;
 
-	Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures)
+	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures)
 	{
 		this->vertices = vertices;
 		this->indices = indices;
@@ -58,12 +55,12 @@ public:
 		unsigned int specularNr = 1;
 		unsigned int normalNr = 1;
 		unsigned int heightNr = 1;
-		for (unsigned int i = 0; i < textures.size(); i++)
+		for (unsigned int i = 0; i < textures.size(); ++i)
 		{
 			glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
 																				// retrieve texture number (the N in diffuse_textureN)
-			string number;
-			string name = textures[i].type;
+			std::string number;
+			std::string name = textures[i].type;
 			if (name == "texture_diffuse")
 				number = std::to_string(diffuseNr++);
 			else if (name == "texture_specular")
@@ -130,5 +127,3 @@ private:
 		glBindVertexArray(0);
 	}
 };
-
-#endif

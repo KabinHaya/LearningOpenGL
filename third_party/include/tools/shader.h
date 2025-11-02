@@ -1,5 +1,4 @@
-#ifndef SHADER_H
-#define SHADER_H
+#pragma once
 
 #include <glad/glad.h>
 
@@ -101,7 +100,7 @@ public:
     }
     // activate the shader
     // ------------------------------------------------------------------------
-    void use()
+    void use() const
     {
         glUseProgram(ID);
     }
@@ -144,7 +143,7 @@ public:
     {
         glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
     }
-    void setVec4(const std::string &name, float x, float y, float z, float w)
+    void setVec4(const std::string& name, float x, float y, float z, float w) const
     {
         glUniform4f(glGetUniformLocation(ID, name.c_str()), x, y, z, w);
     }
@@ -193,5 +192,3 @@ private:
         }
     }
 };
-
-#endif
