@@ -15,7 +15,7 @@ endif()
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/source-charset:utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/execution-charset:gbk>")
 
-project ("LearningOpenGL")
+project (LearningOpenGL)
 
 # 将资源路径通过宏定义进行传递
 set(ASSETS_DIR ${CMAKE_SOURCE_DIR}/assets)

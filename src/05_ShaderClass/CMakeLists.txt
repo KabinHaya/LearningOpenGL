@@ -1,18 +1,18 @@
 # 将源代码添加到此项目的可执行文件。
-set(PROJECT_NAME 05_ShaderClass)
+set(TARGET_NAME 05_ShaderClass)
 
-add_executable (${PROJECT_NAME}
+add_executable (${TARGET_NAME}
     main.cpp
  )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET ${PROJECT_NAME}  PROPERTY CXX_STANDARD 20)
+  set_property(TARGET ${TARGET_NAME}  PROPERTY CXX_STANDARD 20)
 endif()
 
-target_include_directories(${PROJECT_NAME} PRIVATE 
+target_include_directories(${TARGET_NAME} PRIVATE 
     ${MYLIB_INCLUDE_DIR}
 )
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(${TARGET_NAME}
     ${GLFW_LIBRARY}
     glad
 )
@@ -33,7 +33,7 @@ add_custom_target(05_CopyResources ALL
     BYPRODUCTS 
         "${RESOURCES_DST}"
 )
-# message(STATUS "${PROJECT_NAME}: Shader resources will be copied to: ${RESOURCES_DST}")
-add_dependencies(${PROJECT_NAME} 
+# message(STATUS "${TARGET_NAME}: Shader resources will be copied to: ${RESOURCES_DST}")
+add_dependencies(${TARGET_NAME} 
     05_CopyResources
 )
