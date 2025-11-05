@@ -1,21 +1,21 @@
 # 将源代码添加到此项目的可执行文件。
-set(PROJECT_NAME 27_LoadModel)
+set(TARGET_NAME 27_LoadModel)
 
-add_executable (${PROJECT_NAME}
+add_executable (${TARGET_NAME}
     main.cpp    
 )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET ${PROJECT_NAME}
+  set_property(TARGET ${TARGET_NAME}
     PROPERTY
         CXX_STANDARD 20
   )
 endif()
 
-target_include_directories(${PROJECT_NAME} PRIVATE 
+target_include_directories(${TARGET_NAME} PRIVATE 
     ${MYLIB_INCLUDE_DIR}
 )
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(${TARGET_NAME}
     ${GLFW_LIBRARY}
     ${ZLIB_LIBRARY}
     ${ASSIMP_LIBRARY}
@@ -24,7 +24,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 # 将目录路径作为编译时宏传递
-target_compile_definitions(${PROJECT_NAME} PRIVATE
+target_compile_definitions(${TARGET_NAME} PRIVATE
     ASSETS_DIR="${ASSETS_DIR}"
     SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/shader"
 )

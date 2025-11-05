@@ -27,7 +27,7 @@ float lastY = SCREEN_HEIGHT / 2;
 float yaw = 0;
 float pitch = 0;
 float deltaTime = 0.0f; // 当前帧与上一帧的时间差
-float lastFrameTime = 0.0f; // 上一针的时间
+float prevFrameTime = 0.0f; // 上一针的时间
 float fov = 45.0f; // 视椎体的角度
 bool isFirstMouse = true;
 
@@ -181,8 +181,8 @@ int main()
         processInput(window);
 
         float currentFrame = (float)glfwGetTime();
-        deltaTime = currentFrame - lastFrameTime;
-        lastFrameTime = currentFrame;
+        deltaTime = currentFrame - prevFrameTime;
+        prevFrameTime = currentFrame;
 
         // 开始 ImGui 帧
         ImGui_ImplOpenGL3_NewFrame();

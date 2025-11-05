@@ -32,7 +32,7 @@ bool isFirstMouse = true;
 
 // 时机
 float deltaTime = 0.0f; // 当前帧与上一帧的时间差
-float lastFrameTime = 0.0f; // 上一针的时间
+float prevFrameTime = 0.0f; // 上一针的时间
 
 int main()
 {
@@ -178,8 +178,8 @@ int main()
         processInput(window);
 
         float currentFrameTime = static_cast<float>(glfwGetTime());
-        deltaTime = currentFrameTime - lastFrameTime;
-        lastFrameTime = currentFrameTime;
+        deltaTime = currentFrameTime - prevFrameTime;
+        prevFrameTime = currentFrameTime;
 
         // 开始 ImGui 帧
         ImGui_ImplOpenGL3_NewFrame();
