@@ -14,8 +14,6 @@
 #include <tools/shader.h>
 #include <tools/stb_image.h>
 #include <tools/camera.h>
-#include <tools/mesh.h>
-#include <tools/model.h>
 
 #include <iostream>
 #include <string>
@@ -28,8 +26,8 @@ static void mouseCallback(GLFWwindow* window, double posX, double posY);
 static void scrollCallback(GLFWwindow* window, double offsetX, double offsetY);
 static unsigned int loadTexture(std::string_view path);
 
-const unsigned int SCREEN_WIDTH = 1280;
-const unsigned int SCREEN_HEIGHT = 720;
+int SCREEN_WIDTH = 1280;
+int SCREEN_HEIGHT = 720;
 
 // 摄像机
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -41,6 +39,7 @@ bool isMouseCaptured = true; // 初始为捕获状态（隐藏鼠标，控制视
 // 时机
 float deltaTime = 0.0f; // 当前帧与上一帧的时间差
 float prevFrameTime = 0.0f; // 上一针的时间
+
 
 int main()
 {
@@ -95,76 +94,59 @@ int main()
     // 从左下到右上
     // 这是渲染窗口
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    glEnable(GL_PROGRAM_POINT_SIZE);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     glEnable(GL_DEPTH_TEST);
 
-    std::vector<glm::vec3> cubePositions
-    {
-        glm::vec3(2.0f,  5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f),
-        glm::vec3(-3.8f, -2.0f, -12.3f),
-        glm::vec3(2.4f, -0.4f, -3.5f),
-        glm::vec3(-1.7f,  3.0f, -7.5f),
-        glm::vec3(1.3f, -2.0f, -2.5f),
-        glm::vec3(1.5f,  2.0f, -2.5f),
-        glm::vec3(1.5f,  0.2f, -1.5f),
-        glm::vec3(-1.3f,  1.0f, -1.5f)
-    };
+    ImVec4 bgColor = ImVec4(0.12f, 0.12f, 0.15f, 1.0f);
 
-    std::vector<glm::vec3> pointLightPositions
-    {
-        glm::vec3(0.7f,  0.2f,  2.0f),
-        glm::vec3(2.3f, -3.3f, -4.0f),
-        glm::vec3(-4.0f,  2.0f, -12.0f),
-        glm::vec3(0.0f,  0.0f, -3.0f)
-    };
-
-    Shader ourShader(std::string(SHADER_DIR) + "/vertex.glsl", std::string(SHADER_DIR) + "/fragment.glsl");
-    Shader lightObjShader(std::string(SHADER_DIR) + "/lightObjVert.glsl", std::string(SHADER_DIR) + "/lightObjFrag.glsl");
+    Shader sceneShader1(SHADER_DIR "/scene.vert", SHADER_DIR "/scene1.frag");
+    Shader sceneShader2(SHADER_DIR "/scene.vert", SHADER_DIR "/scene2.frag");
+    Shader sceneShader3(SHADER_DIR "/scene.vert", SHADER_DIR "/scene3.frag");
+    Shader sceneShader4(SHADER_DIR "/scene.vert", SHADER_DIR "/scene4.frag");
     
     BoxGeometry boxGeometry(1.0f, 1.0f, 1.0f);
-    SphereGeometry sphereGeometry(0.1f, 10.0f, 10.0f);
-    PlaneGeometry planeGeometry(10.0f, 10.0f);
-        
-    unsigned int diffuseMap = loadTexture(std::string(ASSETS_DIR) + "/texture/container2.png");
-    unsigned int specularMap = loadTexture(std::string(ASSETS_DIR) + "/texture/container2_specular.png");
-    unsigned int groundMap = loadTexture(std::string(ASSETS_DIR) + "/texture/TexturesCom_MuddySand2_2x2_2K_height.png");
 
-    ourShader.use();    
+    unsigned int uvMap  = loadTexture(ASSETS_DIR "/texture/uv_grid_directx.jpg");
 
-    ImVec4 bgColor = ImVec4(0.2f, 0.2f, 0.3f, 1.0f);
+    // 获取绑定点
+    unsigned int uniformBlockIndex_1 = glGetUniformBlockIndex(sceneShader1.ID, "Matrices");
+    unsigned int uniformBlockIndex_2 = glGetUniformBlockIndex(sceneShader2.ID, "Matrices");
+    unsigned int uniformBlockIndex_3 = glGetUniformBlockIndex(sceneShader3.ID, "Matrices");
+    unsigned int uniformBlockIndex_4 = glGetUniformBlockIndex(sceneShader4.ID, "Matrices");
 
-    // 定向光
-    ourShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-    ourShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
-    ourShader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
-    ourShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
-    // 4个点光源
-    for (size_t i = 0; i < pointLightPositions.size(); ++i)
-    {
-        ourShader.setVec3(std::format("pointLights[{}].position", i), pointLightPositions[i]);
-        ourShader.setVec3(std::format("pointLights[{}].ambient", i), 0.05f, 0.05f, 0.05f);
-        ourShader.setVec3(std::format("pointLights[{}].diffuse", i), 0.8f, 0.8f, 0.8f);
-        ourShader.setVec3(std::format("pointLights[{}].specular", i), 1.0f, 1.0f, 1.0f);
-        ourShader.setFloat(std::format("pointLights[{}].constant", i), 1.0f);
-        ourShader.setFloat(std::format("pointLights[{}].linear", i), 0.09f);
-        ourShader.setFloat(std::format("pointLights[{}].quadratic", i), 0.032f);
-    }
-    // 聚光
-    ourShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
-    ourShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-    ourShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-    ourShader.setFloat("spotLight.constant", 1.0f);
-    ourShader.setFloat("spotLight.linear", 0.09f);
-    ourShader.setFloat("spotLight.quadratic", 0.032f);
-    ourShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-    ourShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
+    // 将顶点着色器中uniform块设置为绑定点0
+    glUniformBlockBinding(sceneShader1.ID, uniformBlockIndex_1, 0);
+    glUniformBlockBinding(sceneShader2.ID, uniformBlockIndex_2, 0);
+    glUniformBlockBinding(sceneShader3.ID, uniformBlockIndex_3, 0);
+    glUniformBlockBinding(sceneShader4.ID, uniformBlockIndex_4, 0);
 
-    // 传递材质属性
-    ourShader.setFloat("material.shininess", 32.0f);
+    // 创建uniform缓冲对象，并将其绑定到绑定点0
+    unsigned int uboMatrices;
+    glGenBuffers(1, &uboMatrices);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+    glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), nullptr, GL_STATIC_DRAW); // 分配内存
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, uboMatrices, 0, 2 * sizeof(glm::mat4)); // 将特定范围链接到绑定点0
+
+    // 进入循环之前填充投影矩阵
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+    glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    
+    // 默认为0，可以不填充
+    sceneShader1.use();
+    sceneShader1.setInt("uvMap", 0);
+    sceneShader2.use();
+    sceneShader2.setInt("uvMap", 0);
+    sceneShader3.use();
+    sceneShader3.setInt("uvMap", 0);
+    sceneShader4.use();
+    sceneShader4.setInt("uvMap", 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, uvMap);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -180,11 +162,14 @@ int main()
         ImGui::NewFrame();
         
         ImGui::Begin("ImGui");
-            ImGui::Text("ESC: Exit");
-            ImGui::Text("WASD: Movement");
-            ImGui::Text("L: Lock/Unlock Cursor");
+            ImGui::Text("ESC: Exit  L: Lock/Unlock Cursor");
+            ImGui::Text("WASD: Movement  Space: Up  LCtrl: Down");
             ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::Text("FOV: %.1f", camera.Zoom);
+            ImGui::Text("x: %.1f, y: %.1f, z: %.1f", camera.Position.x, camera.Position.y, camera.Position.z);
+            ImGui::Text("Actual resolution");
+            ImGui::SliderInt("Width", &SCREEN_WIDTH, 800, 1920);
+            ImGui::SliderInt("Height", &SCREEN_HEIGHT, 600, 1080);
         ImGui::End();
 
         // ------------------------------------------------------------
@@ -192,72 +177,36 @@ int main()
         glClearColor(bgColor.x, bgColor.y, bgColor.z, bgColor.w);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, diffuseMap);
-
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, specularMap);
-
-        glActiveTexture(GL_TEXTURE2); // 地面贴图
-        glBindTexture(GL_TEXTURE_2D, groundMap);
-
-        // ------------------------------------------------------------
-        // 设置物体的着色器
-        ourShader.use();
-        glm::mat4 model = glm::mat4(1.0f);
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
-        ourShader.setVec3("viewPos", camera.Position);
-
-        ourShader.setInt("material.diffuse", 0);
-        ourShader.setInt("material.specular", 1);
+        glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+        glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
         glBindVertexArray(boxGeometry.VAO);
-        for (unsigned int i = 0; i < cubePositions.size(); i++)
-        {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-            float angle = 20.0f * i;
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            ourShader.setMat4("model", model);
 
-            glDrawElements(GL_TRIANGLES, static_cast<int>(boxGeometry.indices.size()), GL_UNSIGNED_INT, 0);
-        }
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-0.75f, 0.75f, 0.0f));
+        sceneShader1.use();
+        sceneShader1.setMat4("model", model);
+        glDrawElements(GL_TRIANGLES, static_cast<int>(boxGeometry.indices.size()), GL_UNSIGNED_INT, 0);
 
-        // 设置聚光的位置
-        ourShader.setVec3("spotLight.position", camera.Position);
-        ourShader.setVec3("spotLight.direction", camera.Front);
-
-        // 设置地面位置
-        ourShader.setInt("material.diffuse", 2);
-        ourShader.setInt("material.specular", 1);
-
-        glBindVertexArray(planeGeometry.VAO);
         model = glm::mat4(1.0f);
-        model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 1.0f));
-        ourShader.setMat4("model", model);
-        glDrawElements(GL_TRIANGLES, static_cast<int>(planeGeometry.indices.size()), GL_UNSIGNED_INT, 0);
+        model = glm::translate(model, glm::vec3(0.75f, 0.75f, 0.0f));
+        sceneShader2.use();
+        sceneShader2.setMat4("model", model);
+        glDrawElements(GL_TRIANGLES, static_cast<int>(boxGeometry.indices.size()), GL_UNSIGNED_INT, 0);
 
-        // ------------------------------------------------------------
-        // 设置灯光物体的着色器
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.75f, -0.75f, 0.0f));
+        sceneShader3.use();
+        sceneShader3.setMat4("model", model);
+        glDrawElements(GL_TRIANGLES, static_cast<int>(boxGeometry.indices.size()), GL_UNSIGNED_INT, 0);
 
-        lightObjShader.use();
-        lightObjShader.setMat4("projection", projection);
-        lightObjShader.setMat4("view", view);
-
-        glBindVertexArray(sphereGeometry.VAO);
-        for (unsigned int i = 0; i < pointLightPositions.size(); ++i)
-        {
-            model = glm::mat4(1.0);
-            model = glm::translate(model, pointLightPositions[i]);
-            model = glm::scale(model, glm::vec3(0.2f));
-            lightObjShader.setMat4("model", model);
-            glDrawElements(GL_TRIANGLES, static_cast<int>(sphereGeometry.indices.size()), GL_UNSIGNED_INT, 0);
-        }
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-0.75f, -0.75f, 0.0f));
+        sceneShader4.use();
+        sceneShader4.setMat4("model", model);
+        glDrawElements(GL_TRIANGLES, static_cast<int>(boxGeometry.indices.size()), GL_UNSIGNED_INT, 0);        
 
         // ImGui 渲染
         ImGui::Render();
@@ -269,8 +218,6 @@ int main()
 
     // 资源释放
     boxGeometry.dispose();
-    sphereGeometry.dispose();
-    planeGeometry.dispose();
 
     glfwTerminate();
     return 0;
@@ -303,13 +250,16 @@ void processInput(GLFWwindow* window)
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (key == GLFW_KEY_L && action == GLFW_PRESS) { // 仅在按下瞬间触发
+    if (key == GLFW_KEY_L && action == GLFW_PRESS)
+    { // 仅在按下瞬间触发
         isMouseCaptured = !isMouseCaptured;
-        if (isMouseCaptured) {
+        if (isMouseCaptured)
+        {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             isFirstMouse = true;
         }
-        else {
+        else
+        {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
     }
@@ -349,6 +299,8 @@ unsigned int loadTexture(std::string_view path)
     unsigned int textureID;
     glGenTextures(1, &textureID);
 
+    // 图像y轴翻转
+    stbi_set_flip_vertically_on_load(true);
     int width, height, nrComponents;
     unsigned char* data = stbi_load(path.data(), &width, &height, &nrComponents, 0);
     if (data)
@@ -370,8 +322,8 @@ unsigned int loadTexture(std::string_view path)
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }

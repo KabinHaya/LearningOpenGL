@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <unordered_set>
+
 enum class Camera_Movement 
 {
     FORWARD,
@@ -57,28 +59,35 @@ public:
     }
 
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
-    void ProcessKeyboard(Camera_Movement direction, float deltaTime)
+    void ProcessKeyboard(std::unordered_set<Camera_Movement> operations, float deltaTime)
     {
-        // 这个只在XOZ平面上前后左右的方式有问题，必须朝着前进才能速度全满
+        if (operations.empty())
+            return;
 
         float velocity = MovementSpeed * deltaTime;
         glm::vec3 dirVelocity = glm::vec3(0.0f);
-        if (direction == Camera_Movement::FORWARD)
-            dirVelocity += Front * velocity;
-        if (direction == Camera_Movement::BACKWARD)
-            dirVelocity -= Front * velocity;
-        if (direction == Camera_Movement::LEFT)
-            dirVelocity -= Right * velocity;
-        if (direction == Camera_Movement::RIGHT)
-            dirVelocity += Right * velocity;
 
-        dirVelocity.y = 0; // 只允许前后左右在XOZ平面上移动
-        if (direction == Camera_Movement::UP)
-            dirVelocity.y += (glm::normalize(glm::cross(Right, Front)) * velocity).y;
-        if (direction == Camera_Movement::DOWN)
-            dirVelocity.y -= (glm::normalize(glm::cross(Right, Front)) * velocity).y;
+        // XZ 平面移动
+        if (operations.contains(Camera_Movement::FORWARD))
+            dirVelocity += Front;
+        if (operations.contains(Camera_Movement::BACKWARD))
+            dirVelocity -= Front;
+        if (operations.contains(Camera_Movement::LEFT))
+            dirVelocity -= Right;
+        if (operations.contains(Camera_Movement::RIGHT))
+            dirVelocity += Right;
         
-        Position += dirVelocity;
+        dirVelocity.y = 0.0f;
+        if (operations.contains(Camera_Movement::UP))
+            dirVelocity.y += 1.0f;
+        if (operations.contains(Camera_Movement::DOWN))
+            dirVelocity.y -= 1.0f;
+
+        if (dirVelocity != glm::vec3(0.0f))
+            dirVelocity = glm::normalize(dirVelocity);
+
+        // 最终速度 = 方向 × 速度大小
+        Position += dirVelocity * velocity;
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.

@@ -5,14 +5,13 @@ layout (location = 2) in vec2 TexCoords;
 
 out vec2 outTexCoord;
 
-uniform float factor;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
 void main()
 {
-    // 注意乘法要从右向左读
+    // 娉ㄦ剰涔樻硶瑕佷粠鍙冲悜宸﹁
     gl_Position = projection * view * model * vec4(Position, 1.0f);
     outTexCoord = TexCoords;
 }
