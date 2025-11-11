@@ -14,22 +14,17 @@
 #include <tools/shader.h>
 #include <tools/stb_image.h>
 #include <tools/camera.h>
-#include <tools/mesh.h>
-#include <tools/model.h>
 
 #include <iostream>
 #include <string>
 #include <string_view>
 #include <format>
-#include <unordered_set>
 
 static void processInput(GLFWwindow* window);
 static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 static void mouseCallback(GLFWwindow* window, double posX, double posY);
 
 static unsigned int loadTexture(std::string_view path);
-static unsigned int loadCubeMap(std::vector<std::string_view> faces);
-static void drawSkyBox(Shader shader, BoxGeometry geometry, unsigned int cubeMap);
 
 int SCREEN_WIDTH = 1280;
 int SCREEN_HEIGHT = 720;
@@ -79,12 +74,14 @@ int main()
         {
             glViewport(0, 0, width, height);
         });
+
     glfwSetKeyCallback(window, keyCallback);
     glfwSetCursorPosCallback(window, mouseCallback);
+
     glfwSetScrollCallback(window, [](GLFWwindow* window, double offsetX, double offsetY)
-    {
-        camera.ProcessMouseScroll(static_cast<float>(offsetY));
-    });
+        {
+            camera.ProcessMouseScroll(static_cast<float>(offsetY));
+        });
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // ------------------------------------------------------------
@@ -102,75 +99,34 @@ int main()
     // 从左下到右上
     // 这是渲染窗口
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
-    // 将面剔除关闭，否则不会显示天空盒
-    // glEnable(GL_CULL_FACE);
-    // glCullFace(GL_FRONT);
 
-    std::vector<glm::vec3> cubePositions
+    float points[] =
     {
-        glm::vec3( 1.5f,  0.0f,  0.0f),
-        glm::vec3(-1.5f,  0.0f, -1.0f)
-    };
-
-    std::vector<glm::vec3> pointLightPositions
-    {
-        glm::vec3( 2.0f,  1.5f, -1.0f),
-        glm::vec3(-2.0f,  1.5f, -1.0f),
-        glm::vec3( 2.0f,  1.5f, -3.0f),
-        glm::vec3(-2.0f,  1.5f, -3.0f)
-    };
-
-    std::vector<std::string_view> faces
-    {
-        ASSETS_DIR "/texture/skybox/right.jpg",
-        ASSETS_DIR "/texture/skybox/left.jpg",
-        ASSETS_DIR "/texture/skybox/top.jpg",
-        ASSETS_DIR "/texture/skybox/bottom.jpg",
-        ASSETS_DIR "/texture/skybox/front.jpg",
-        ASSETS_DIR "/texture/skybox/back.jpg",
+        -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // 左上
+         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // 右上
+         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // 右下
+        -0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // 左下
     };
 
     ImVec4 bgColor = ImVec4(0.12f, 0.12f, 0.15f, 1.0f);
 
-    Shader sceneShader(SHADER_DIR "/scene.vert", SHADER_DIR "/scene.frag");
-    Shader lightingShader(SHADER_DIR "/lighting.vert", SHADER_DIR "/lighting.frag");
-    Shader skyBoxShader(SHADER_DIR "/cubeMap.vert", SHADER_DIR "/cubeMap.frag");
-    
-    BoxGeometry boxGeometry(1.0f, 1.0f, 1.0f);
-    BoxGeometry skyBoxGeometry(1.0f, 1.0f, 1.0f);
-    SphereGeometry pointLightGeometry(0.04f, 10.0f, 10.0f);
-    PlaneGeometry floorGeometry(1.0f, 1.0f);
-        
-    unsigned int boxMap    =  loadTexture(ASSETS_DIR "/texture/metal.png");
-    unsigned int floorMap  =  loadTexture(ASSETS_DIR "/texture/wood.png");
-    unsigned int cubeMap   =  loadCubeMap(faces);
+    Shader ourShader(SHADER_DIR "/buildHouse.vert", SHADER_DIR "/buildHouse.frag", SHADER_DIR "/buildHouse.geom");
 
-    sceneShader.use();
-    sceneShader.setInt("material.diffuse", 0);
-    sceneShader.setInt("material.specular", 0);
+    unsigned int VBO, VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
 
-    // 定向光
-    sceneShader.setVec3("dirLight.direction", -1.0f, -1.0f, -1.0f);
-    sceneShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
-    sceneShader.setVec3("dirLight.diffuse", 0.6f, 0.6f, 0.6f);
-    sceneShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
-    // 4个点光源
-    for (size_t i = 0; i < pointLightPositions.size(); ++i)
-    {
-        sceneShader.setVec3(std::format("pointLights[{}].position", i), pointLightPositions[i]);
-        sceneShader.setVec3(std::format("pointLights[{}].ambient", i), 0.05f, 0.05f, 0.05f);
-        sceneShader.setVec3(std::format("pointLights[{}].diffuse", i), 0.8f, 0.8f, 0.8f);
-        sceneShader.setVec3(std::format("pointLights[{}].specular", i), 1.0f, 1.0f, 1.0f);
-        sceneShader.setFloat(std::format("pointLights[{}].constant", i), 1.0f);
-        sceneShader.setFloat(std::format("pointLights[{}].linear", i), 0.09f);
-        sceneShader.setFloat(std::format("pointLights[{}].quadratic", i), 0.032f);
-    }
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(points), &points, GL_STATIC_DRAW);
 
-    skyBoxShader.use();
-    skyBoxShader.setInt("skyBoxTex", 0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+    glBindVertexArray(0);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -201,56 +157,9 @@ int main()
         glClearColor(bgColor.x, bgColor.y, bgColor.z, bgColor.w);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-        glm::mat4 model = glm::mat4(1.0f);
-
-        // 创建灯光
-        lightingShader.use();
-        glBindVertexArray(pointLightGeometry.VAO);
-        lightingShader.setMat4("projection", projection);
-        lightingShader.setMat4("view", view);
-        for (unsigned int i = 0; i < pointLightPositions.size(); i++)
-        {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, pointLightPositions[i]);
-            model = glm::scale(model, glm::vec3(0.2f));
-            lightingShader.setMat4("model", model);
-            glDrawElements(GL_TRIANGLES, static_cast<int>(pointLightGeometry.indices.size()), GL_UNSIGNED_INT, 0);
-        }
-
-        sceneShader.use();
-        sceneShader.setMat4("projection", projection);
-        sceneShader.setMat4("view", view);
-        sceneShader.setVec3("viewPos", camera.Position);
-
-        glActiveTexture(GL_TEXTURE0);
-
-        // 创建地面
-        glBindVertexArray(floorGeometry.VAO);        
-        glBindTexture(GL_TEXTURE_2D, floorMap);
-        sceneShader.setFloat("material.shininess", 2.0f);
-        model = glm::mat4(1.0f);
-        model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, -0.5f));
-        model = glm::scale(model, glm::vec3(10.0f));
-        sceneShader.setMat4("model", model);
-        glDrawElements(GL_TRIANGLES, static_cast<int>(floorGeometry.indices.size()), GL_UNSIGNED_INT, 0);
-
-        // 创建箱子
-        glBindVertexArray(boxGeometry.VAO);
-        glBindTexture(GL_TEXTURE_2D, boxMap);
-        sceneShader.setFloat("material.shininess", 32.0f);
-        for (unsigned int i = 0; i < cubePositions.size(); i++)
-        {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-            sceneShader.setMat4("model", model);
-            glDrawElements(GL_TRIANGLES, static_cast<int>(boxGeometry.indices.size()), GL_UNSIGNED_INT, 0);
-        }
-
-        // 绘制天空盒
-        drawSkyBox(skyBoxShader, skyBoxGeometry, cubeMap);
+        ourShader.use();
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_POINTS, 0, 4);
 
         // ImGui 渲染
         ImGui::Render();
@@ -261,10 +170,8 @@ int main()
     }
 
     // 资源释放
-    boxGeometry.dispose();
-    pointLightGeometry.dispose();
-    floorGeometry.dispose();
-    skyBoxGeometry.dispose();
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
 
     glfwTerminate();
     return 0;
@@ -336,8 +243,6 @@ void mouseCallback(GLFWwindow* window, double posXIn, double posYIn)
     camera.ProcessMouseMovement(offsetX, offsetY);
 }
 
-
-
 unsigned int loadTexture(std::string_view path)
 {
     unsigned int textureID;
@@ -378,57 +283,4 @@ unsigned int loadTexture(std::string_view path)
     stbi_image_free(data);
 
     return textureID;
-}
-
-unsigned int loadCubeMap(std::vector<std::string_view> faces)
-{
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
-
-    stbi_set_flip_vertically_on_load(false);
-    for (unsigned int i = 0; i < faces.size(); i++)
-    {
-        int width, height, nrChannels;
-        unsigned char* data = stbi_load(faces[i].data(), &width, &height, &nrChannels, 0);
-        if (data)
-        {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);            
-        }
-        else
-        {
-            std::cout << "Cube map texture failed to load at path: " << faces[i] << std::endl;
-        }
-        stbi_image_free(data);
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-    return textureID;
-}
-
-void drawSkyBox(Shader shader, BoxGeometry geometry, unsigned int cubeMap)
-{
-    glDepthFunc(GL_LEQUAL);
-
-    glm::mat4 view        =  camera.GetViewMatrix();
-    glm::mat4 projection  =  glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-
-    shader.use();
-    view = glm::mat4(glm::mat3(view)); // 移除平移分量
-
-    shader.setMat4("view", view);
-    shader.setMat4("projection", projection);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap);
-    glBindVertexArray(geometry.VAO);
-    glDrawElements(GL_TRIANGLES, static_cast<int>(geometry.indices.size()), GL_UNSIGNED_INT, 0);
-
-    glBindVertexArray(0);
-    glEnable(GL_DEPTH_TEST);
 }

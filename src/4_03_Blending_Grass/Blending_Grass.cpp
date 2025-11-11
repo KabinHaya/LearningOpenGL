@@ -25,7 +25,7 @@
 static void processInput(GLFWwindow* window);
 static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 static void mouseCallback(GLFWwindow* window, double posX, double posY);
-static void scrollCallback(GLFWwindow* window, double offsetX, double offsetY);
+
 static unsigned int loadTexture(std::string_view path);
 
 const unsigned int SCREEN_WIDTH = 1280;
@@ -77,7 +77,10 @@ int main()
         });
     glfwSetKeyCallback(window, keyCallback);
     glfwSetCursorPosCallback(window, mouseCallback);
-    glfwSetScrollCallback(window, scrollCallback);
+    glfwSetScrollCallback(window, [](GLFWwindow* window, double offsetX, double offsetY)
+    {
+        camera.ProcessMouseScroll(static_cast<float>(offsetY));
+    });
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // ------------------------------------------------------------
@@ -322,10 +325,7 @@ void mouseCallback(GLFWwindow* window, double posXIn, double posYIn)
     camera.ProcessMouseMovement(offsetX, offsetY);
 }
 
-void scrollCallback(GLFWwindow* window, double offsetX, double offsetY)
-{
-    camera.ProcessMouseScroll(static_cast<float>(offsetY));
-}
+
 
 unsigned int loadTexture(std::string_view path)
 {
