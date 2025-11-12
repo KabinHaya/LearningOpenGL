@@ -83,7 +83,7 @@ public:
         if (operations.contains(Camera_Movement::DOWN))
             dirVelocity.y -= 1.0f;
 
-        if (dirVelocity != glm::vec3(0.0f))
+        if (dirVelocity != glm::vec3(0.0f)) // 归一化零向量时会有问题
             dirVelocity = glm::normalize(dirVelocity);
 
         // 最终速度 = 方向 × 速度大小
