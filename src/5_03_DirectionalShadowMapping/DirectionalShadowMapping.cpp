@@ -26,9 +26,14 @@ static void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
 static void mouseCallback(GLFWwindow* window, double posX, double posY);
 
 static unsigned int loadTexture(std::string_view path);
+static void renderScene(const Shader& shader);
+static void renderQuad();
 
 int SCREEN_WIDTH = 1280;
 int SCREEN_HEIGHT = 720;
+
+const unsigned int SHADOW_WIDTH = 1024;
+const unsigned int SHADOW_HEIGHT = 1024;
 
 // 摄像机
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -41,6 +46,12 @@ bool isMouseCaptured = true; // 初始为捕获状态（隐藏鼠标，控制视
 float deltaTime = 0.0f; // 当前帧与上一帧的时间差
 float prevFrameTime = 0.0f; // 上一针的时间
 
+// 几何形状
+std::unique_ptr<BoxGeometry> cubeGeometry;
+std::unique_ptr<PlaneGeometry> planeGeometry;
+
+unsigned int quadVAO = 0;
+unsigned int quadVBO;
 
 int main()
 {
@@ -105,18 +116,46 @@ int main()
 
     ImVec4 bgColor = ImVec4(0.12f, 0.12f, 0.15f, 1.0f);
 
-    Shader shader1(SHADER_DIR "/shader1.vert", SHADER_DIR "/shader1.frag");
-    Shader shader2(SHADER_DIR "/shader2.vert", SHADER_DIR "/shader2.frag");
+    Shader sceneShader(SHADER_DIR "/scene.vert", SHADER_DIR "/scene.frag");
+    Shader simpleDepthShader(SHADER_DIR "/shadowMappingDepth.vert", SHADER_DIR "/shadowMappingDepth.frag");
+    Shader debugDepthQuad(SHADER_DIR "/debugQuad.vert", SHADER_DIR "/debugQuad.frag");    
+
+    cubeGeometry  = std::make_unique<BoxGeometry>(1.0f, 1.0f, 1.0f);
+    planeGeometry = std::make_unique<PlaneGeometry>(1.0f, 1.0f);
+
+    unsigned int woodMap = loadTexture(ASSETS_DIR "/texture/wood.png");
+
+    // 为渲染的深度贴图创建一个帧缓冲对象
+    unsigned int depthMapFBO;
+    glGenFramebuffers(1, &depthMapFBO);
     
-    SphereGeometry sphereGeometry(1.0f, 10.0f, 10.0f);
-    BoxGeometry boxGeometry(1.0f, 1.0f, 1.0f);
+    // 创建一个2D纹理，提供给帧缓冲的深度缓冲使用
+    unsigned int depthMap;
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+        SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr); // 纹理格式指定为GL_DEPTH_COMPONENT
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-    unsigned int containerMap = loadTexture(ASSETS_DIR "/texture/container.jpg");
-    unsigned int awesomeMap   = loadTexture(ASSETS_DIR "/texture/awesomeface.png");
+    // 把生成的深度纹理作为帧缓冲的深度缓冲
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    shader2.use();
-    shader2.setInt("frontTexture", 0);
-    shader2.setInt("backTexture", 1);
+    sceneShader.use();
+    sceneShader.setInt("diffuseTexture", 0);
+    sceneShader.setInt("shadowMap", 1);
+    debugDepthQuad.use();
+    debugDepthQuad.setInt("depthMap", 0);
+
+    glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -137,9 +176,10 @@ int main()
             ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::Text("FOV: %.1f", camera.Zoom);
             ImGui::Text("x: %.1f, y: %.1f, z: %.1f", camera.Position.x, camera.Position.y, camera.Position.z);
-            ImGui::Text("Actual resolution");
-            ImGui::SliderInt("Width", &SCREEN_WIDTH, 800, 1920);
-            ImGui::SliderInt("Height", &SCREEN_HEIGHT, 600, 1080);
+            ImGui::SliderInt("Screen Width", &SCREEN_WIDTH, 800, 1920);
+            ImGui::SliderInt("Screen Height", &SCREEN_HEIGHT, 600, 1080);
+            // ImGui::SliderInt("Shadow Width", &SHADOW_WIDTH, 256, 4096); // 不能这么修改，depthMap由于已经预定了大小，无法实时修改
+            // ImGui::SliderInt("Shadow Height", &SHADOW_HEIGHT, 256, 4096);
         ImGui::End();
 
         // ------------------------------------------------------------
@@ -147,36 +187,52 @@ int main()
         glClearColor(bgColor.x, bgColor.y, bgColor.z, bgColor.w);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // 1.将场景深度渲染为纹理（从灯光的角度）
+        float nearPlane = 1.0f;
+        float farPlane  = 7.5f;
+        // glm::mat4 lightProjection = glm::perspective(glm::radians(45.0f), (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, near_plane, far_plane);
+        glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, nearPlane, farPlane);
+        glm::mat4 lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+        
+        simpleDepthShader.use();
+        simpleDepthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+            glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, woodMap);
+            renderScene(simpleDepthShader);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // 重置视口大小
+        glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // 2.使用生成的深度/阴影贴图，正常渲染场景
+        sceneShader.use();
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        glm::mat4 model = glm::mat4(1.0f);
-
-        shader1.use();
-        shader1.setInt("screenWidth", SCREEN_WIDTH);
-        shader1.setMat4("projection", projection);
-        shader1.setMat4("view", view);
-
-        // 创建球体
-        glBindVertexArray(sphereGeometry.VAO);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -0.5f));
-        shader1.setMat4("model", model);
-        glDrawElements(GL_POINTS, static_cast<int>(sphereGeometry.indices.size()), GL_UNSIGNED_INT, 0);
-
-        // 创建正方体
+        sceneShader.setMat4("projection", projection);
+        sceneShader.setMat4("view", view);
+        // 设置灯光属性
+        sceneShader.setVec3("viewPos", camera.Position);
+        sceneShader.setVec3("lightPos", lightPos);
+        sceneShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, containerMap);
+        glBindTexture(GL_TEXTURE_2D, woodMap);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, awesomeMap);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        renderScene(sceneShader);
 
-        shader2.use();
-        shader2.setMat4("projection", projection);
-        shader2.setMat4("view", view);
-        glBindVertexArray(boxGeometry.VAO);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(1.0f, 0.0f, -0.5f));
-        shader2.setMat4("model", model);
-        glDrawElements(GL_TRIANGLES, static_cast<int>(boxGeometry.indices.size()), GL_UNSIGNED_INT, 0);
+        // 将深度贴图渲染为四边形以进行可视化调试
+        debugDepthQuad.use();
+        debugDepthQuad.setFloat("nearPlane", nearPlane);
+        debugDepthQuad.setFloat("farPlane", farPlane);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        // renderQuad();
 
         // ImGui 渲染
         ImGui::Render();
@@ -187,7 +243,10 @@ int main()
     }
 
     // 资源释放
-    sphereGeometry.dispose();
+    cubeGeometry->dispose();
+    planeGeometry->dispose();
+    glDeleteVertexArrays(1, &quadVAO);
+    glDeleteBuffers(1, &quadVBO);
 
     glfwTerminate();
     return 0;
@@ -299,4 +358,79 @@ unsigned int loadTexture(std::string_view path)
     stbi_image_free(data);
 
     return textureID;
+}
+
+void renderScene(const Shader& shader)
+{
+    std::vector<glm::vec3> cubePositions
+    {
+        glm::vec3( 0.0f,  1.5f,  0.0f),
+        glm::vec3( 2.0f,  0.0f,  1.0f),
+        glm::vec3(-1.0f,  0.0f,  2.0f)
+    };
+
+    // ------------------------------------------------------------
+    // floor
+    glBindVertexArray(planeGeometry->VAO);
+
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(0.0f, -0.26f, 0.0f));
+    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::scale(model, glm::vec3(10.0f));
+    shader.setMat4("model", model);
+    shader.setFloat("uvScale", 4.0f);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(planeGeometry->indices.size()), GL_UNSIGNED_INT, 0);
+
+    // ------------------------------------------------------------
+    // cubes
+    glBindVertexArray(cubeGeometry->VAO);
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, cubePositions[0]);
+    model = glm::scale(model, glm::vec3(0.5f));
+    shader.setMat4("model", model);
+    shader.setFloat("uvScale", 1.0f);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(cubeGeometry->indices.size()), GL_UNSIGNED_INT, 0);
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, cubePositions[1]);
+    model = glm::scale(model, glm::vec3(0.5f));
+    shader.setMat4("model", model);
+    shader.setFloat("uvScale", 1.0f);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(cubeGeometry->indices.size()), GL_UNSIGNED_INT, 0);
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, cubePositions[2]);
+    model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0f, 0.0f, 1.0f)));
+    model = glm::scale(model, glm::vec3(0.25f));
+    shader.setMat4("model", model);
+    shader.setFloat("uvScale", 1.0f);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(cubeGeometry->indices.size()), GL_UNSIGNED_INT, 0);
+}
+
+void renderQuad()
+{
+    if (quadVAO == 0)
+    {
+        float quadVertices[] = {
+            // positions        // texture Coords
+            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+             1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+             1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        };
+        // setup plane VAO
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
 }

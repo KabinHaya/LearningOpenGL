@@ -306,7 +306,7 @@ void processInput(GLFWwindow* window)
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (key == GLFW_KEY_L && action == GLFW_PRESS) { // 仅在按下瞬间触发
+    if (key == GLFW_KEY_L && action == GLFW_RELEASE) {
         isMouseCaptured = !isMouseCaptured;
         if (isMouseCaptured) {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -341,8 +341,6 @@ void mouseCallback(GLFWwindow* window, double posXIn, double posYIn)
 
     camera.ProcessMouseMovement(offsetX, offsetY);
 }
-
-
 
 unsigned int loadTexture(std::string_view path)
 {

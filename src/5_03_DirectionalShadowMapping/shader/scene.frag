@@ -53,11 +53,11 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     float closestDepth = texture(shadowMap, projCoords.xy).r; 
     // 取得当前片段在光源视角下的深度
     float currentDepth = projCoords.z;
-    vec3 normal = normalize(fs_in.Normal);
-    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
     // float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
 
     // 计算 阴影偏移 (基于表面法线和光照方向)
+    vec3 normal = normalize(fs_in.Normal);
+    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
     float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     // check whether current frag pos is in shadow
     // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;

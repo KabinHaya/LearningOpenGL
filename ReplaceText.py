@@ -5,12 +5,15 @@ from pathlib import Path
 file_suffix = '*.cpp'
 
 # 定义旧文本和新文本
-old_text = '''void scrollCallback(GLFWwindow* window, double offsetX, double offsetY)
-{
-    camera.ProcessMouseScroll(static_cast<float>(offsetY));
-}'''
+old_text = '''}
 
-new_text = ''''''
+
+
+unsigned int loadTexture(std::string_view path)'''
+
+new_text = '''}
+
+unsigned int loadTexture(std::string_view path)'''
 
 # 获取脚本所在目录，并定位 src
 HERE = Path(__file__).resolve().parent

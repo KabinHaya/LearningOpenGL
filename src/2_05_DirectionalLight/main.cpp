@@ -270,8 +270,6 @@ void mouseCallback(GLFWwindow* window, double posXIn, double posYIn)
     camera.ProcessMouseMovement(offsetX, offsetY);
 }
 
-
-
 unsigned int loadTexture(std::string_view path)
 {
     unsigned int textureID;

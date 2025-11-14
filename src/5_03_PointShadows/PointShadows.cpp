@@ -2,17 +2,24 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
+// glm数学库
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+// imgui
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
+
+// 用于创建立方体等元素
 #include <geometry/BoxGeometry.h>
 #include <geometry/SphereGeometry.h>
 #include <geometry/PlaneGeometry.h>
-#include <tools/shader.h>
+
 #include <tools/stb_image.h>
+#include <tools/shader.h>
 #include <tools/camera.h>
 
 #include <iostream>
@@ -22,41 +29,41 @@
 #include <unordered_set>
 
 static void processInput(GLFWwindow* window);
-static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-static void mouseCallback(GLFWwindow* window, double posX, double posY);
+static void keyCallback(GLFWwindow* window, GLint key, GLint scancode, GLint action, GLint mods);
+static void mouseCallback(GLFWwindow* window, GLdouble posX, GLdouble posY);
 
-static unsigned int loadTexture(std::string_view path);
+static GLuint loadTexture(std::string_view path);
 static void renderScene(const Shader& shader);
 static void renderQuad();
 
-int SCREEN_WIDTH = 1280;
-int SCREEN_HEIGHT = 720;
+GLint SCREEN_WIDTH = 1280;
+GLint SCREEN_HEIGHT = 720;
 
-const unsigned int SHADOW_WIDTH = 2048;
-const unsigned int SHADOW_HEIGHT = 2048;
+constexpr GLuint SHADOW_WIDTH = 1024;
+constexpr GLuint SHADOW_HEIGHT = 1024;
 
 // 摄像机
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-float lastX = SCREEN_WIDTH / 2.0f;
-float lastY = SCREEN_HEIGHT / 2.0f;
+GLfloat lastX = SCREEN_WIDTH / 2.0f;
+GLfloat lastY = SCREEN_HEIGHT / 2.0f;
 bool isFirstMouse = true;
 bool isMouseCaptured = true; // 初始为捕获状态（隐藏鼠标，控制视角）
+bool useShadows = true;
 
 // 时机
-float deltaTime = 0.0f; // 当前帧与上一帧的时间差
-float prevFrameTime = 0.0f; // 上一针的时间
+GLfloat deltaTime = 0.0f; // 当前帧与上一帧的时间差
+GLfloat prevFrameTime = 0.0f; // 上一针的时间
 
 // 几何形状
 std::unique_ptr<BoxGeometry> cubeGeometry;
-std::unique_ptr<PlaneGeometry> planeGeometry;
 
-unsigned int quadVAO = 0;
-unsigned int quadVBO;
+GLuint quadVAO = 0;
+GLuint quadVBO;
 
 int main()
 {
 
-    const char* glslVersion = "#version 330";
+    const GLchar* glslVersion = "#version 330";
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -109,59 +116,59 @@ int main()
     // 从左下到右上
     // 这是渲染窗口
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_PROGRAM_POINT_SIZE);
+    glEnable(GL_CULL_FACE);
 
     ImVec4 bgColor = ImVec4(0.12f, 0.12f, 0.15f, 1.0f);
 
     Shader sceneShader(SHADER_DIR "/scene.vert", SHADER_DIR "/scene.frag");
-    Shader simpleDepthShader(SHADER_DIR "/shadowMappingDepth.vert", SHADER_DIR "/shadowMappingDepth.frag");
-    Shader debugDepthQuad(SHADER_DIR "/debugQuad.vert", SHADER_DIR "/debugQuad.frag");    
+    Shader lightObjShader(SHADER_DIR "/lightObj.vert", SHADER_DIR "/lightObj.frag");
+    Shader simpleDepthShader(SHADER_DIR "/pointShadowsDepth.vert", SHADER_DIR "/pointShadowsDepth.frag", SHADER_DIR "/pointShadowsDepth.geom");
 
     cubeGeometry  = std::make_unique<BoxGeometry>(1.0f, 1.0f, 1.0f);
-    planeGeometry = std::make_unique<PlaneGeometry>(1.0f, 1.0f);
+    SphereGeometry sphereGeometry(0.01f, 10.0f, 10.0f);
 
-    unsigned int woodMap = loadTexture(ASSETS_DIR "/texture/wood.png");
+    GLuint woodTexture = loadTexture(ASSETS_DIR "/texture/wood.png");
+
+    float lightPos[3] = { 0.0f, 0.0f, 0.0f };
 
     // 为渲染的深度贴图创建一个帧缓冲对象
-    unsigned int depthMapFBO;
+    GLuint depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
     
     // 创建一个2D纹理，提供给帧缓冲的深度缓冲使用
-    unsigned int depthMap;
-    glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
-        SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr); // 纹理格式指定为GL_DEPTH_COMPONENT
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    GLuint depthCubeMap;
+    glGenTextures(1, &depthCubeMap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubeMap);
+    for (GLuint i = 0; i < 6; ++i)
+    {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT,
+            SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr); // 纹理格式指定为GL_DEPTH_COMPONENT
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     // 把生成的深度纹理作为帧缓冲的深度缓冲
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubeMap, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     sceneShader.use();
     sceneShader.setInt("diffuseTexture", 0);
-    sceneShader.setInt("shadowMap", 1);
-    debugDepthQuad.use();
-    debugDepthQuad.setInt("depthMap", 0);
-
-    glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
+    sceneShader.setInt("shadowMap", 1);    
 
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
 
-        float currentFrameTime = static_cast<float>(glfwGetTime());
-        deltaTime = currentFrameTime - prevFrameTime;
-        prevFrameTime = currentFrameTime;
+        GLfloat currFrameTime = static_cast<GLfloat>(glfwGetTime());
+        deltaTime = currFrameTime - prevFrameTime;
+        prevFrameTime = currFrameTime;        
 
         // 开始 ImGui 帧
         ImGui_ImplOpenGL3_NewFrame();
@@ -171,14 +178,17 @@ int main()
         ImGui::Begin("ImGui");
             ImGui::Text("ESC: Exit  L: Lock/Unlock Cursor");
             ImGui::Text("WASD: Movement  Space: Up  LCtrl: Down");
+            ImGui::Text("U: Turn On/Off Shadows");
             ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::Text("FOV: %.1f", camera.Zoom);
             ImGui::Text("x: %.1f, y: %.1f, z: %.1f", camera.Position.x, camera.Position.y, camera.Position.z);
             ImGui::SliderInt("Screen Width", &SCREEN_WIDTH, 800, 1920);
             ImGui::SliderInt("Screen Height", &SCREEN_HEIGHT, 600, 1080);
-            // ImGui::SliderInt("Shadow Width", &SHADOW_WIDTH, 256, 4096); // 不能这么修改，depthMap由于已经预定了大小，无法实时修改
-            // ImGui::SliderInt("Shadow Height", &SHADOW_HEIGHT, 256, 4096);
+            ImGui::SliderFloat3("Light Position", lightPos, -10.0f, 10.0f);
+            ImGui::Checkbox("Use Shadows", &useShadows);
         ImGui::End();
+
+        glm::vec3 curLightPos(lightPos[0], lightPos[1], lightPos[2]);
 
         // ------------------------------------------------------------
         // 渲染指令
@@ -186,51 +196,61 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // 1.将场景深度渲染为纹理（从灯光的角度）
-        float nearPlane = 1.0f;
-        float farPlane  = 7.5f;
-        // glm::mat4 lightProjection = glm::perspective(glm::radians(45.0f), (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, near_plane, far_plane);
-        glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, nearPlane, farPlane);
-        glm::mat4 lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-        
-        simpleDepthShader.use();
-        simpleDepthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        GLfloat aspect = (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT;
+        GLfloat nearPlane = 1.0f;
+        GLfloat farPlane  = 25.0f;
+        glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, nearPlane, farPlane);
+        std::vector<glm::mat4> shadowTransforms;
+        shadowTransforms.push_back(shadowProj * glm::lookAt(curLightPos, curLightPos + glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3( 0.0f, -1.0f,  0.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(curLightPos, curLightPos + glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3( 0.0f, -1.0f,  0.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(curLightPos, curLightPos + glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3( 0.0f,  0.0f,  1.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(curLightPos, curLightPos + glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3( 0.0f,  0.0f, -1.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(curLightPos, curLightPos + glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3( 0.0f, -1.0f,  0.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(curLightPos, curLightPos + glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3( 0.0f, -1.0f,  0.0f)));
 
+        simpleDepthShader.use();
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
             glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
             glClear(GL_DEPTH_BUFFER_BIT);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, woodMap);
+            for (GLuint i = 0; i < 6; ++i)
+            {
+                simpleDepthShader.setMat4(std::format("shadowMatrices[{}]", i), shadowTransforms[i]);
+            }
+            simpleDepthShader.setFloat("farPlane", farPlane);
+            simpleDepthShader.setVec3("lightPos", curLightPos);
             renderScene(simpleDepthShader);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+        // 2.使用生成的深度/阴影贴图，正常渲染场景
         // 重置视口大小
         glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // 2.使用生成的深度/阴影贴图，正常渲染场景
         sceneShader.use();
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         sceneShader.setMat4("projection", projection);
         sceneShader.setMat4("view", view);
-        // 设置灯光属性
+        // 设置其它属性
         sceneShader.setVec3("viewPos", camera.Position);
-        sceneShader.setVec3("lightPos", lightPos);
-        sceneShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        sceneShader.setVec3("lightPos", curLightPos);
+        sceneShader.setFloat("farPlane", farPlane);        
+        sceneShader.setBool("useShadows", useShadows);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, woodMap);
+        glBindTexture(GL_TEXTURE_2D, woodTexture);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubeMap);
         renderScene(sceneShader);
 
-        // 将深度贴图渲染为四边形以进行可视化调试
-        debugDepthQuad.use();
-        debugDepthQuad.setFloat("nearPlane", nearPlane);
-        debugDepthQuad.setFloat("farPlane", farPlane);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
-        // renderQuad();
+        // 渲染灯光
+        lightObjShader.use();
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, curLightPos);
+        lightObjShader.setMat4("projection", projection);
+        lightObjShader.setMat4("view", view);
+        lightObjShader.setMat4("model", model);
+        glBindVertexArray(sphereGeometry.VAO);
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(sphereGeometry.indices.size()), GL_UNSIGNED_INT, 0);
 
         // ImGui 渲染
         ImGui::Render();
@@ -242,7 +262,6 @@ int main()
 
     // 资源释放
     cubeGeometry->dispose();
-    planeGeometry->dispose();
     glDeleteVertexArrays(1, &quadVAO);
     glDeleteBuffers(1, &quadVBO);
 
@@ -275,10 +294,10 @@ void processInput(GLFWwindow* window)
         camera.ProcessKeyboard(operations, deltaTime);
 }
 
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void keyCallback(GLFWwindow* window, GLint key, GLint scancode, GLint action, GLint mods)
 {
-    if (key == GLFW_KEY_L && action == GLFW_PRESS)
-    { // 仅在按下瞬间触发
+    if (key == GLFW_KEY_L && action == GLFW_RELEASE)
+    {
         isMouseCaptured = !isMouseCaptured;
         if (isMouseCaptured)
         {
@@ -290,15 +309,20 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
     }
+
+    if (key == GLFW_KEY_U && action == GLFW_RELEASE)
+    {
+        useShadows = !useShadows;
+    }
 }
 
-void mouseCallback(GLFWwindow* window, double posXIn, double posYIn)
+void mouseCallback(GLFWwindow* window, GLdouble posXIn, GLdouble posYIn)
 {
     if (!isMouseCaptured)
         return; // 如果鼠标未被捕获（即已释放），不处理视角移动
 
-    float posX = static_cast<float>(posXIn);
-    float posY = static_cast<float>(posYIn);
+    GLfloat posX = static_cast<GLfloat>(posXIn);
+    GLfloat posY = static_cast<GLfloat>(posYIn);
 
     if (isFirstMouse)
     {
@@ -307,8 +331,8 @@ void mouseCallback(GLFWwindow* window, double posXIn, double posYIn)
         isFirstMouse = false;
     }
 
-    float offsetX = posX - lastX;
-    float offsetY = lastY - posY;
+    GLfloat offsetX = posX - lastX;
+    GLfloat offsetY = lastY - posY;
 
     lastX = posX;
     lastY = posY;
@@ -316,17 +340,15 @@ void mouseCallback(GLFWwindow* window, double posXIn, double posYIn)
     camera.ProcessMouseMovement(offsetX, offsetY);
 }
 
-
-
-unsigned int loadTexture(std::string_view path)
+GLuint loadTexture(std::string_view path)
 {
-    unsigned int textureID;
+    GLuint textureID;
     glGenTextures(1, &textureID);
 
     // 图像y轴翻转
     stbi_set_flip_vertically_on_load(true);
-    int width, height, nrComponents;
-    unsigned char* data = stbi_load(path.data(), &width, &height, &nrComponents, 0);
+    GLint width, height, nrComponents;
+    stbi_uc* data = stbi_load(path.data(), &width, &height, &nrComponents, 0);
     if (data)
     {
         /*
@@ -362,57 +384,68 @@ unsigned int loadTexture(std::string_view path)
 
 void renderScene(const Shader& shader)
 {
-    std::vector<glm::vec3> cubePositions
-    {
-        glm::vec3( 0.0f,  1.5f,  0.0f),
-        glm::vec3( 2.0f,  0.0f,  1.0f),
-        glm::vec3(-1.0f,  0.0f,  2.0f)
-    };
-
     // ------------------------------------------------------------
-    // floor
-    glBindVertexArray(planeGeometry->VAO);
+    // Room cube
+    glBindVertexArray(cubeGeometry->VAO);
 
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, -0.26f, 0.0f));
-    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     model = glm::scale(model, glm::vec3(10.0f));
     shader.setMat4("model", model);
     shader.setFloat("uvScale", 4.0f);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(planeGeometry->indices.size()), GL_UNSIGNED_INT, 0);
+    glDisable(GL_CULL_FACE);
+    shader.setInt("isReverseNormals", 1);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(cubeGeometry->indices.size()), GL_UNSIGNED_INT, 0);
+    shader.setInt("isReverseNormals", 0);
+    glEnable(GL_CULL_FACE);
 
     // ------------------------------------------------------------
     // cubes
+    std::vector<glm::vec3> cubePositions
+    {
+        glm::vec3( 4.0f, -3.5f,  0.0f),
+        glm::vec3( 2.0f,  3.0f,  1.0f),
+        glm::vec3(-3.0f, -1.0f,  0.0f),
+        glm::vec3(-1.5f,  1.0f,  1.5f),
+        glm::vec3(-1.5f,  2.0f, -3.0f)
+    };
+
+    std::vector<GLfloat> rotateAngles
+    {
+         0.0f,
+         0.0f,
+         0.0f,
+         0.0f,
+        60.0f
+    };
+
+    std::vector<GLfloat> scaleFactors
+    {
+        1.0f,
+        1.5f,
+        1.0f,
+        1.0f,
+        1.5f
+    };    
+    
     glBindVertexArray(cubeGeometry->VAO);
-
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, cubePositions[0]);
-    model = glm::scale(model, glm::vec3(0.5f));
-    shader.setMat4("model", model);
     shader.setFloat("uvScale", 1.0f);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(cubeGeometry->indices.size()), GL_UNSIGNED_INT, 0);
-
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, cubePositions[1]);
-    model = glm::scale(model, glm::vec3(0.5f));
-    shader.setMat4("model", model);
-    shader.setFloat("uvScale", 1.0f);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(cubeGeometry->indices.size()), GL_UNSIGNED_INT, 0);
-
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, cubePositions[2]);
-    model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0f, 0.0f, 1.0f)));
-    model = glm::scale(model, glm::vec3(0.25f));
-    shader.setMat4("model", model);
-    shader.setFloat("uvScale", 1.0f);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(cubeGeometry->indices.size()), GL_UNSIGNED_INT, 0);
+    for (GLuint i = 0; i < cubePositions.size(); ++i)
+    {
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, cubePositions[i]);
+        model = glm::rotate(model, glm::radians(rotateAngles[i]), glm::normalize(glm::vec3(1.0f, 0.0f, 1.0f)));
+        model = glm::scale(model, glm::vec3(scaleFactors[i]));
+        shader.setMat4("model", model);
+        
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(cubeGeometry->indices.size()), GL_UNSIGNED_INT, 0);
+    }
 }
 
 void renderQuad()
 {
     if (quadVAO == 0)
     {
-        float quadVertices[] = {
+        GLfloat quadVertices[] = {
             // positions        // texture Coords
             -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
             -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
@@ -426,9 +459,9 @@ void renderQuad()
         glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)0);
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
     }
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

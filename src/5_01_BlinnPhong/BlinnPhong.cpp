@@ -261,7 +261,7 @@ void processInput(GLFWwindow* window)
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_L && action == GLFW_RELEASE)
-    { // 仅在按下瞬间触发
+    {
         isMouseCaptured = !isMouseCaptured;
         if (isMouseCaptured)
         {

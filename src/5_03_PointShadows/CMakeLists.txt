@@ -1,8 +1,8 @@
 # 将源代码添加到此项目的可执行文件。
-set(TARGET_NAME 5_03_RenderingShadows)
+set(TARGET_NAME 5_03_PointShadows)
 
 add_executable (${TARGET_NAME}
-    RenderingShadows.cpp
+    PointShadows.cpp
 )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
