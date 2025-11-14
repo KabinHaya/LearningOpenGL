@@ -184,7 +184,7 @@ int main()
             ImGui::Text("x: %.1f, y: %.1f, z: %.1f", camera.Position.x, camera.Position.y, camera.Position.z);
             ImGui::SliderInt("Screen Width", &SCREEN_WIDTH, 800, 1920);
             ImGui::SliderInt("Screen Height", &SCREEN_HEIGHT, 600, 1080);
-            ImGui::SliderFloat3("Light Position", lightPos, -10.0f, 10.0f);
+            ImGui::SliderFloat3("Light Position", lightPos, -5.0f, 5.0f);
             ImGui::Checkbox("Use Shadows", &useShadows);
         ImGui::End();
 
