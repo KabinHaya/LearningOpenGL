@@ -120,7 +120,7 @@ int main()
         glm::vec3(-2.0f,  1.5f, -3.0f)
     };
 
-    std::vector<glm::vec3> pointLightDiffuse
+    std::vector<glm::vec3> pointLightColors
     {
         glm::vec3(5.0f, 5.0f, 5.0f),
         glm::vec3(0.1f, 0.0f, 0.0f),
@@ -154,8 +154,8 @@ int main()
     for (size_t i = 0; i < pointLightPositions.size(); ++i)
     {
         sceneShader.setVec3(std::format("pointLights[{}].position", i), pointLightPositions[i]);
-        sceneShader.setVec3(std::format("pointLights[{}].ambient", i), 0.1f, 0.1f, 0.1f);
-        sceneShader.setVec3(std::format("pointLights[{}].diffuse", i), pointLightDiffuse[i]);
+        sceneShader.setVec3(std::format("pointLights[{}].ambient", i), 0.01f, 0.01f, 0.01f);
+        sceneShader.setVec3(std::format("pointLights[{}].diffuse", i), pointLightColors[i]);
         sceneShader.setVec3(std::format("pointLights[{}].specular", i), 0.1f, 0.1f, 0.1f);
         sceneShader.setFloat(std::format("pointLights[{}].constant", i), 1.0f);
         sceneShader.setFloat(std::format("pointLights[{}].linear", i), 0.09f);

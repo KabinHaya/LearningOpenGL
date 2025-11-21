@@ -10,10 +10,16 @@ struct Material
     float shininess;    // 高光指数
 };
 
-struct PointLight
-{
+struct PointLight {
     vec3 position;
-    vec3 color;
+
+    float constant;
+    float linear;
+    float quadratic;
+
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
 };
 
 
@@ -30,6 +36,8 @@ uniform vec3 viewPos;           // 摄像机位置
 uniform Material material;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 
+uniform float bloomThreshold;
+
 // 函数
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 
@@ -45,9 +53,9 @@ void main()
         result += CalcPointLight(pointLights[i], normal, fs_in.FragPos, viewDir);
     }
 
-    // check whether result is higher than some threshold, if so, output as bloom threshold color
+    // 检查结果是否高于某个阈值，如果是，则输出为bloom阈值颜色
     float brightness = dot(result, vec3(0.2126, 0.7152, 0.0722));
-    if(brightness > 1.0)
+    if(brightness > bloomThreshold)
         BrightColor = vec4(result, 1.0);
     else
         BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -55,7 +63,6 @@ void main()
     FragColor = vec4(result, 1.0f);
 }
 
-// calculates the color when using a point light.
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 {
     vec3 diffuseTexture = vec3(texture(material.diffuse, fs_in.TexCoords));
@@ -63,20 +70,21 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
     vec3 lightDir = normalize(light.position - fragPos);
 
     // 环境光
-    vec3 ambient = 0.0f * diffuseTexture;
+    vec3 ambient = light.ambient * diffuseTexture;
     
     // 漫反射
     float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = light.color * diff * diffuseTexture;
+    vec3 diffuse = light.diffuse * diff * diffuseTexture;
     
     // 镜面反射
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-    vec3 specular = light.color * spec * specularTexture;
+    vec3 specular = light.specular * spec * specularTexture;
     
     // 衰减
     float distance = length(light.position - fragPos);
-    float attenuation = 1.0 / (distance * distance);
+    float attenuation = 1.0 / (light.constant + light.linear * distance + 
+                    light.quadratic * (distance * distance));    
     ambient *= attenuation;
     diffuse *= attenuation;
     specular *= attenuation;

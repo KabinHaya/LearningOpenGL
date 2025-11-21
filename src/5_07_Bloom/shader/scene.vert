@@ -13,11 +13,12 @@ out VS_OUT
 uniform mat4 model;         // 模型矩阵
 uniform mat4 view;          // 视图矩阵
 uniform mat4 projection;    // 投影矩阵
+uniform float uvScale;
 
 void main()
 {
     vs_out.FragPos = vec3(model * vec4(aPos, 1.0));   
-    vs_out.TexCoords = aTexCoords;
+    vs_out.TexCoords = aTexCoords * uvScale;
         
     mat3 normalMatrix = transpose(inverse(mat3(model)));
     vs_out.Normal = normalize(normalMatrix * aNormal);
