@@ -130,7 +130,7 @@ int main()
 
     GLuint woodTexture = loadTexture(ASSETS_DIR "/texture/wood.png");
 
-    float lightPos[3] = { 0.0f, 0.0f, 0.0f };
+    GLfloat lightPos[3] = { 0.0f, 0.0f, 0.0f };
 
     // 为渲染的深度贴图创建一个帧缓冲对象
     GLuint depthMapFBO;
