@@ -14,7 +14,6 @@ struct PointLight {
     float constant;
     float linear;
     float quadratic;
-    float radius;
 
     vec3 ambient;
     vec3 diffuse;
@@ -23,7 +22,7 @@ struct PointLight {
 
 in vec2 TexCoords;
 
-#define NR_POINT_LIGHTS 32
+#define NR_POINT_LIGHTS 1
 
 uniform vec3 viewPos;           // 摄像机位置
 uniform PointLight pointLights[NR_POINT_LIGHTS];
@@ -44,9 +43,7 @@ void main()
     vec3 result = vec3(0.0f);
     for (int i = 0; i < NR_POINT_LIGHTS; i++)
     {
-        float distance = length(pointLights[i].position - FragPos);
-        if(distance < pointLights[i].radius)
-            result += CalcPointLight(pointLights[i], Normal, FragPos, viewDir, Diffuse, AmbientOcclusion);
+        result += CalcPointLight(pointLights[i], Normal, FragPos, viewDir, Diffuse, AmbientOcclusion);
     }
 
     FragColor = vec4(result, 1.0f);
