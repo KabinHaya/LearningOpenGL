@@ -21,6 +21,7 @@
 
 static void processInput(GLFWwindow* window);
 static void mouseCallback(GLFWwindow* window, double posX, double posY);
+static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 static unsigned int loadTexture(std::string_view path);
 
@@ -71,6 +72,7 @@ int main()
         {
             glViewport(0, 0, width, height);
         });
+    glfwSetKeyCallback(window, keyCallback);
     glfwSetCursorPosCallback(window, mouseCallback);
     glfwSetScrollCallback(window, [](GLFWwindow* window, double offsetX, double offsetY)
     {
@@ -253,17 +255,36 @@ int main()
 }
 
 void processInput(GLFWwindow* window)
-{    
+{
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+    std::unordered_set<Camera_Movement> operations{};
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        operations.insert(Camera_Movement::FORWARD);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        operations.insert(Camera_Movement::BACKWARD);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        operations.insert(Camera_Movement::LEFT);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        operations.insert(Camera_Movement::RIGHT);
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        operations.insert(Camera_Movement::UP);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        operations.insert(Camera_Movement::DOWN);
+
+    camera.ProcessKeyboard(operations, deltaTime);
+}
+
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_L && action == GLFW_RELEASE)
     {
         isMouseCaptured = !isMouseCaptured;
         if (isMouseCaptured)
         {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-            // 重置 isFirstMouse，防止跳变
             isFirstMouse = true;
         }
         else
@@ -271,20 +292,6 @@ void processInput(GLFWwindow* window)
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
     }
-
-    // 问题在于斜着走会更快，不过这个暂时不用考虑
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::RIGHT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::UP, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::DOWN, deltaTime);
 }
 
 void mouseCallback(GLFWwindow* window, double posXIn, double posYIn)

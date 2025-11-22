@@ -218,9 +218,8 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    std::unordered_set<Camera_Movement> operations;
+    std::unordered_set<Camera_Movement> operations{};
 
-    // 问题在于斜着走会更快，不过这个暂时不用考虑
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         operations.insert(Camera_Movement::FORWARD);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -234,8 +233,7 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
         operations.insert(Camera_Movement::DOWN);
 
-    if (!operations.empty())
-        camera.ProcessKeyboard(operations, deltaTime);
+    camera.ProcessKeyboard(operations, deltaTime);
 }
 
 void keyCallback(GLFWwindow* window, GLint key, GLint scancode, GLint action, GLint mods)

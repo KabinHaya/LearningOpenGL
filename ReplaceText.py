@@ -5,15 +5,53 @@ from pathlib import Path
 file_suffix = '*.cpp'
 
 # 定义旧文本和新文本
-old_text = '''}
+old_text = '''void processInput(GLFWwindow* window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
 
+    std::unordered_set<Camera_Movement> operations;
 
+    // 问题在于斜着走会更快，不过这个暂时不用考虑
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        operations.insert(Camera_Movement::FORWARD);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        operations.insert(Camera_Movement::BACKWARD);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        operations.insert(Camera_Movement::LEFT);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        operations.insert(Camera_Movement::RIGHT);
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        operations.insert(Camera_Movement::UP);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        operations.insert(Camera_Movement::DOWN);
 
-unsigned int loadTexture(std::string_view path)'''
+    if (!operations.empty())
+        camera.ProcessKeyboard(operations, deltaTime);
+}'''
 
-new_text = '''}
+new_text = '''void processInput(GLFWwindow* window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
 
-unsigned int loadTexture(std::string_view path)'''
+    std::unordered_set<Camera_Movement> operations{};
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        operations.insert(Camera_Movement::FORWARD);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        operations.insert(Camera_Movement::BACKWARD);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        operations.insert(Camera_Movement::LEFT);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        operations.insert(Camera_Movement::RIGHT);
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        operations.insert(Camera_Movement::UP);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        operations.insert(Camera_Movement::DOWN);
+
+    camera.ProcessKeyboard(operations, deltaTime);
+}'''
 
 # 获取脚本所在目录，并定位 src
 HERE = Path(__file__).resolve().parent
